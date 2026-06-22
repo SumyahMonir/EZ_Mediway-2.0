@@ -29,7 +29,7 @@ const getDoctor = async (req, res) => {
 
 const createDoctor = async (req, res) => {
     console.log(req.body)
-    const { Name,NID,Email,Phone,Fee,License_No } = req.body
+    const { Name,NID,Email,Phone,Fee,License_no } = req.body
 
     try {
         const doctor = await Doctor.create({ Name,NID,Email,Phone,Fee,License_No })

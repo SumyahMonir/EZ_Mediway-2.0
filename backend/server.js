@@ -34,3 +34,7 @@ app.listen(PORT, () => {
 })
 }).catch((error)=>{console.log(error)})
 
+//cors add na korle frontend add e error ashbe..ekn alada port e cholle problem nai
+const cors = require("cors");
+
+app.use(cors());

@@ -23,23 +23,51 @@ Patients can search doctors by specialization, view profiles, check availability
         </div>
       </section>
 
-    {/* <!-- Mini Info Section --> */}
+
+  {/* <!-- Mini Info Section  --> */}
   <section class="py-16 bg-white">
-    <div class="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 text-center">
-      <div>
-        <h3 class="text-xl font-bold text-slate-900">Who We Are</h3>
-        <p class="mt-2 text-slate-700">EZ MediWay is a leading healthcare provider dedicated to ensuring your well-being.</p>
-      </div>
-      <div>
-        <h3 class="text-xl font-bold text-slate-900">Our Mission</h3>
-        <p class="mt-2 text-slate-700">To deliver high-quality healthcare services accessible to everyone, anytime.</p>
-      </div>
-      <div>
-        <h3 class="text-xl font-bold text-slate-900">Our Vision</h3>
-        <p class="mt-2 text-slate-700">To become the most trusted medical service provider for families worldwide.</p>
+    <div class="container mx-auto text-center">
+      {/* <h2 class="text-3xl font-bold text-slate-900">Who We Are</h2> */}
+      <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">Who We Are</h3>
+          <p class="mt-2 text-slate-700">EZ MediWay is a leading healthcare provider dedicated to ensuring your well-being.</p>
+        </div>
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">Our Mission</h3>
+          <p class="mt-2 text-slate-700">To deliver high-quality healthcare services accessible to everyone, anytime.</p>
+        </div>
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">Our Vision</h3>
+          <p class="mt-2 text-slate-700">To become the most trusted medical service provider for families worldwide.</p>
+        </div>
+        
       </div>
     </div>
   </section>
+
+  {/* <!-- Medical Services Section --> */}
+  <section class="py-16 bg-white">
+    <div class="container mx-auto text-center">
+      <h2 class="text-3xl font-bold text-slate-900">Our Medical Services</h2>
+      <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">General Checkup</h3>
+          <p class="mt-2 text-slate-700">Comprehensive health evaluation to keep you in top shape.</p>
+        </div>
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">Online Health Care</h3>
+          <p class="mt-2 text-slate-700">Offers 24/7 support through online chat and live communication between doctors and patients</p>
+        </div>
+        <div class="bg-sky-50 p-6 rounded-xl shadow hover:shadow-lg transition">
+          <h3 class="font-bold text-xl text-slate-900">Online Appointment</h3>
+          <p class="mt-2 text-slate-700">Anyone can book appointments without visiting hospitals unnecessarily</p>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
     </div>
   )
 }

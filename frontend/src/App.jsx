@@ -8,7 +8,7 @@ const App = () => {
    <>
       <Navbar/>
       <main className="mt-6">
-      <Outlet />   {/* ekhane eketa route onujai page render hobe */}
+      <Outlet />   {/* Navbar theke ami jkhane jete chacchi oita tokn ekhane render hbe route onujai*/}
       </main>
       <Footer/>
   </>

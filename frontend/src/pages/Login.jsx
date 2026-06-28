@@ -4,8 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 
 const Login = () => {
-    const navigate = useNavigate();
-const [role, setRole] = useState("");
+
+  const navigate = useNavigate();
+  const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -100,6 +101,16 @@ const [role, setRole] = useState("");
             Create account
           </Link>
         </p>
+        <p className="text-center text-sm text-gray-500 mt-4">
+          <Link
+            to="/"
+            className="text-gray-600 font-medium hover:underline"
+          >
+            Back
+          </Link>
+        </p>
+        
+        
       </div>
     </div>
   )

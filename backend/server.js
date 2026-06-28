@@ -17,6 +17,11 @@ app.use((req, res, next) => {
   next()
 })
 
+//cors add na korle frontend add e error ashbe..ekn alada port e cholle problem nai
+const cors = require("cors");
+
+app.use(cors());
+
 // Parse JSON bodies (useful to add early)
 app.use(express.json())
 
@@ -34,7 +39,3 @@ app.listen(PORT, () => {
 })
 }).catch((error)=>{console.log(error)})
 
-//cors add na korle frontend add e error ashbe..ekn alada port e cholle problem nai
-const cors = require("cors");
-
-app.use(cors());

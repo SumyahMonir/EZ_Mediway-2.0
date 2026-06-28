@@ -118,6 +118,25 @@ const CreateAccount = () => {
             Create Account
           </button>
 
+          <p className="text-center text-sm text-gray-500 mt-4">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-gray-600 font-medium hover:underline"
+          >
+            Log in
+          </Link>
+        </p>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          <Link
+            to="/"
+            className="text-gray-600 font-medium hover:underline"
+          >
+            Back
+          </Link>
+        </p>
+
         </form>
       </div>
     </div>

@@ -16,20 +16,31 @@ import About from './pages/About.jsx'
 import Doctors from './pages/Doctors.jsx'
 import Contact from './pages/Contact.jsx'
 import CreateAccount from './pages/CreateAccount.jsx'
-import Login from './pages/login.jsx'
+import Login from './pages/Login.jsx'
+import DoctorDetails from "./pages/DoctorDetails";
+import BookAppointment from "./pages/BookAppointment";
+import PatientDashboard from "./pages/PatientDashboard";
+import DoctorDashboard from "./pages/DoctorDashboard";
+
+
 
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App/>}>
-      <Route index element={<Home />} />
+      <Route index element={<Home />} /> //local host diye gelei ami home pabo
       <Route path='home' element={<Home/>}/>
       <Route path ='about' element={<About/>} />
       <Route path ='doctors' element={<Doctors/>} />
+
+      <Route path="doctors/:id" element={<DoctorDetails />} />
+
       <Route path ='contact' element={<Contact/>} />
       <Route path ='CreateAccount' element={<CreateAccount/>} />
       <Route path ='login' element={<Login/>} />
-      
+      <Route path="book-appointment" element={<BookAppointment />} />
+      <Route path="patient/dashboard" element={<PatientDashboard />} />
+      <Route path="doctor/dashboard" element={<DoctorDashboard />} />
 
     </Route>
 

@@ -1,23 +1,24 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import API from "../api"; // axios instance
+import API from "../api";
 
 const CreateAccount = () => {
   const navigate = useNavigate();
 
   const [role, setRole] = useState("");
 
-  // common fields
+  // Common fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nid, setNid] = useState("");
+  const [password, setPassword] = useState("");
 
-  // patient only
+  // Patient fields
   const [weight, setWeight] = useState("");
   const [blood, setBlood] = useState("");
 
-  // doctor only
+  // Doctor fields
   const [fee, setFee] = useState("");
   const [license, setLicense] = useState("");
 
@@ -26,121 +27,222 @@ const CreateAccount = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!role) return setError("Select role first");
+    if (!role) {
+      return setError("Please select a role.");
+    }
 
     if (!email.endsWith("@gmail.com")) {
-      return setError("Only @gmail.com allowed");
+      return setError("Please use a valid @gmail.com email.");
+    }
+
+    if (password.length < 6) {
+      return setError("Password must be at least 6 characters.");
     }
 
     try {
       setError("");
 
-      // 👤 PATIENT
       if (role === "patient") {
         await API.post("/users", {
           Name: name,
           NID: nid,
+          Phone: Number(phone),
           Email: email,
-          Phone: phone,
-          Weight: weight,
+          Password: password,
+          Weight: Number(weight),
           Blood_Grp: blood,
         });
 
-        navigate("/patient-dashboard");
+        alert("Patient account created successfully!");
+        navigate("/login");
       }
 
-      // 🧑‍⚕️ DOCTOR
-      else if (role === "doctor") {
+      if (role === "doctor") {
         await API.post("/doctors", {
           Name: name,
           NID: nid,
+          Phone: Number(phone),
           Email: email,
-          Phone: phone,
-          Fee: fee,
-          License_no: license,
+          Password: password,
+          Fee: Number(fee),
+          License_no: Number(license),
         });
 
-        navigate("/doctor-dashboard");
+        alert("Doctor account created successfully!");
+        navigate("/login");
       }
-
     } catch (err) {
-      console.log(err);
-      setError("Something went wrong");
+      console.error(err);
+
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Something went wrong.");
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+  <div className="min-h-screen flex items-center justify-center bg-[#F7FAF7] py-10 px-4">
+    <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#D8E5DA] w-full max-w-md">
 
-        <h1 className="text-2xl font-bold text-center mb-4">
-          Create Account
-        </h1>
+      <h1 className="text-3xl font-bold text-center text-[#0F2A18] mb-2">
+        Create Account
+      </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-center text-[#3A4D3E] mb-6">
+        Create your EZ MediWay account
+      </p>
 
-          {/* ROLE */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* Role */}
+        <div>
+          <label className="block mb-2 font-medium text-[#0F2A18]">
+            Select Role
+          </label>
+
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
           >
-            <option value="">Select Role</option>
+            <option value="">Choose Role</option>
             <option value="patient">Patient</option>
             <option value="doctor">Doctor</option>
           </select>
+        </div>
 
-          {/* COMMON FIELDS */}
-          <input placeholder="Name" value={name} onChange={(e)=>setName(e.target.value)} className="w-full border p-2 rounded" />
-          <input placeholder="NID" value={nid} onChange={(e)=>setNid(e.target.value)} className="w-full border p-2 rounded" />
-          <input placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} className="w-full border p-2 rounded" />
-          <input placeholder="Phone" value={phone} onChange={(e)=>setPhone(e.target.value)} className="w-full border p-2 rounded" />
+        {/* Name */}
+        <input
+          type="text"
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+          required
+        />
 
-          {/* CONDITIONAL UI */}
+        {/* NID */}
+        <input
+          type="text"
+          placeholder="NID Number"
+          value={nid}
+          onChange={(e) => setNid(e.target.value)}
+          className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+          required
+        />
 
-          {role === "patient" && (
-            <>
-              <input placeholder="Weight" value={weight} onChange={(e)=>setWeight(e.target.value)} className="w-full border p-2 rounded" />
-              <input placeholder="Blood Group" value={blood} onChange={(e)=>setBlood(e.target.value)} className="w-full border p-2 rounded" />
-            </>
-          )}
+        {/* Email */}
+        <input
+          type="email"
+          placeholder="example@gmail.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+          required
+        />
 
-          {role === "doctor" && (
-            <>
-              <input placeholder="Fee" value={fee} onChange={(e)=>setFee(e.target.value)} className="w-full border p-2 rounded" />
-              <input placeholder="License No" value={license} onChange={(e)=>setLicense(e.target.value)} className="w-full border p-2 rounded" />
-            </>
-          )}
+        {/* Phone */}
+        <input
+          type="number"
+          placeholder="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+          required
+        />
 
-          {error && <p className="text-red-500">{error}</p>}
+        {/* Password */}
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+          required
+        />
 
-          <button className="w-full bg-gray-700 text-white py-2 rounded">
-            Create Account
-          </button>
+        {/* Patient Fields */}
+        {role === "patient" && (
+          <>
+            <input
+              type="number"
+              placeholder="Weight"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+              required
+            />
 
-          <p className="text-center text-sm text-gray-500 mt-4">
+            <input
+              type="text"
+              placeholder="Blood Group"
+              value={blood}
+              onChange={(e) => setBlood(e.target.value)}
+              className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+              required
+            />
+          </>
+        )}
+
+        {/* Doctor Fields */}
+        {role === "doctor" && (
+          <>
+            <input
+              type="number"
+              placeholder="Consultation Fee"
+              value={fee}
+              onChange={(e) => setFee(e.target.value)}
+              className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+              required
+            />
+
+            <input
+              type="number"
+              placeholder="License Number"
+              value={license}
+              onChange={(e) => setLicense(e.target.value)}
+              className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+              required
+            />
+          </>
+        )}
+
+        {error && (
+          <p className="text-red-500 text-sm">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          className="w-full bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
+        >
+          Create Account
+        </button>
+
+        <p className="text-center text-sm text-[#3A4D3E]">
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-gray-600 font-medium hover:underline"
+            className="text-[#0B3D1E] font-semibold hover:underline"
           >
-            Log in
+            Log In
           </Link>
         </p>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm">
           <Link
             to="/"
-            className="text-gray-600 font-medium hover:underline"
+            className="text-[#0B3D1E] hover:underline"
           >
             Back
           </Link>
         </p>
 
-        </form>
-      </div>
+      </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default CreateAccount;

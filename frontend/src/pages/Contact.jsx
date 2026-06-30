@@ -2,9 +2,9 @@ import React from "react";
 
 const Contact = () => {
   return (
-    <section className="bg-sky-100 py-16">
+    <section className="bg-[#EDF2EC] py-16">
       <div className="container mx-auto px-6 md:px-12 lg:px-24">
-        <h2 className="text-3xl font-bold text-center text-slate-900">
+        <h2 className="text-3xl font-bold text-center text-[#0F2A18]">
           Contact Us
         </h2>
         <p className="mt-3 text-center text-slate-700">
@@ -15,7 +15,7 @@ const Contact = () => {
           
           {/* Left Side - Contact Info */}
           <div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">
+            <h3 className="text-xl font-semibold text-[#0F2A18] mb-4">
               Get in Touch
             </h3>
             <p className="text-slate-700 mb-4">
@@ -23,7 +23,7 @@ const Contact = () => {
               Our team is always ready to help you with appointments and guidance.
             </p>
 
-            <div className="space-y-3 text-slate-700">
+            <div className="space-y-3 text-[#0F2A18]">
               <p>
                 <b>Address:</b> Chattogram, Bangladesh
               </p>
@@ -38,7 +38,7 @@ const Contact = () => {
 
           {/* Right Side - Contact Form */}
           <div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">
+            <h3 className="text-xl font-semibold text-[#0F2A18] mb-4">
               Send a Message
             </h3>
 
@@ -63,7 +63,7 @@ const Contact = () => {
 
               <button
                 type="submit"
-                className="bg-gray-600 text-white px-5 py-2 rounded hover:bg-gray-700 transition"
+                className="bg-[#0B3D1E] text-white px-5 py-2 rounded hover:bg-[#082B15] transition"
               >
                 Send Message
               </button>

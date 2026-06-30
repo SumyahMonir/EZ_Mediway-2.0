@@ -14,7 +14,7 @@ const doctors = [
     experience: "8 Years",
     hospital: "Apollo Hospital",
     fee: 800,
-    days: "Sunday - Thursday",
+    days: "Sunday -Thursday",
     time: "10:00 AM - 4:00 PM",
     description:
       "Experienced General Physician dedicated to providing quality healthcare.",
@@ -61,14 +61,14 @@ const DoctorDetails = () => {
   }
 
   return (
-    <section className="py-16 bg-white min-h-screen">
+    <section className="py-16 bg-[#F7FAF7] min-h-screen">
       <div className="max-w-5xl mx-auto px-6">
 
-        <h2 className="text-3xl font-bold text-center text-slate-900 mb-10">
+        <h2 className="text-3xl font-bold text-center text-[#0F2A18] mb-10">
           Doctor Details
         </h2>
 
-        <div className="bg-sky-50 rounded-xl shadow-lg p-8 grid md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-[#D8E5DA] p-8 grid md:grid-cols-2 gap-8">
 
           <div className="flex justify-center">
             <img
@@ -80,57 +80,69 @@ const DoctorDetails = () => {
 
           <div className="space-y-3">
 
-            <h3 className="text-3xl font-bold text-slate-900">
+            <h3 className="text-3xl font-bold text-[#0F2A18]">
               {doctor.name}
             </h3>
 
-            <p className="text-sky-700 font-semibold">
+            <p className="text-[#0B3D1E] font-semibold">
               {doctor.specialization}
             </p>
 
-            <p>
-              <span className="font-semibold">Experience:</span>{" "}
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">
+                Experience:
+              </span>{" "}
               {doctor.experience}
             </p>
 
-            <p>
-              <span className="font-semibold">Hospital:</span>{" "}
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">
+                Hospital:
+              </span>{" "}
               {doctor.hospital}
             </p>
 
-            <p>
-              <span className="font-semibold">Consultation Fee:</span> BDT{" "}
-              {doctor.fee}
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">
+                Consultation Fee:
+              </span>{" "}
+              BDT {doctor.fee}
             </p>
 
-            <p>
-              <span className="font-semibold">Available Days:</span>{" "}
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">
+                Available Days:
+              </span>{" "}
               {doctor.days}
             </p>
 
-            <p>
-              <span className="font-semibold">Available Time:</span>{" "}
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">
+                Available Time:
+              </span>{" "}
               {doctor.time}
             </p>
 
-            <p className="text-gray-600 pt-2">
+            <p className="text-[#3A4D3E] pt-2 leading-relaxed">
               {doctor.description}
             </p>
 
-            <div className="pt-5 flex gap-4">
+            <div className="pt-6 flex gap-4">
+
               <Link
                 to="/book-appointment"
-                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+                className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300"
               >
                 Book Appointment
               </Link>
 
               <Link
                 to="/doctors"
-                className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+                className="bg-[#EEF5EF] text-[#0F2A18] px-6 py-3 rounded-lg border border-[#D8E5DA] hover:bg-[#E4EEE5] transition-all duration-300"
               >
                 Back
               </Link>
+
             </div>
 
           </div>

@@ -1,9 +1,9 @@
 const { default: mongoose } = require("mongoose")
-const Doctor=require("../models/doctormodel")
+const Doctor = require("../models/doctormodel")
 
 const getDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.find({}).sort({ createdAt: -1 })
+        const doctors = await Doctor.find({}).populate("UserAuthId", "Email Role").sort({ createdAt: -1 })
         res.status(200).json(doctors)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -14,7 +14,7 @@ const getDoctor = async (req, res) => {
     const { id } = req.params
 
     try {
-        const doctor = await Doctor.findById(id)
+        const doctor = await Doctor.findById(id).populate("UserAuthId", "Email Role")
 
         if (!doctor) {
             return res.status(404).json({ error: "No such doctor" })
@@ -27,12 +27,14 @@ const getDoctor = async (req, res) => {
     }
 }
 
+// NOTE: creating a doctor directly is no longer how registration works.
+// Use POST /api/auth/register with Role: "doctor" instead.
+// Kept here only in case you need to create a profile for an existing UserAuthId.
 const createDoctor = async (req, res) => {
-    console.log(req.body)
-    const { Name,NID,Email,Phone,Fee,License_no } = req.body
+    const { UserAuthId, Name, NID, Phone, Fee, License_no } = req.body
 
     try {
-        const doctor = await Doctor.create({ Name,NID,Email,Phone,Fee,License_No })
+        const doctor = await Doctor.create({ UserAuthId, Name, NID, Phone, Fee, License_no })
         res.status(201).json(doctor)
     } catch (error) {
         res.status(400).json({ error: error.message })

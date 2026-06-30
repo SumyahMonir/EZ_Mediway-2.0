@@ -1,11 +1,10 @@
-import React from 'react'
+import React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-
 const Login = () => {
-
   const navigate = useNavigate();
+
   const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,26 +29,33 @@ const Login = () => {
 
     // backend connect hole ekhane API call hobe
     alert("Login successful!");
-    navigate("/"); // home page e niye jabe
+    navigate("/");
   };
 
   return (
-    <div className="py-16 flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-2">Log In</h1>
-        <p className="text-center text-sm text-gray-500 mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#F4F8F5] py-10 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#D8E5DA] p-8">
+
+        <h1 className="text-3xl font-bold text-center text-[#0F2A18] mb-2">
+          Log In
+        </h1>
+
+        <p className="text-center text-[#3A4D3E] mb-6">
           Enter your credentials to access your account
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Role */}
+          {/* Role */}
           <div>
-            <label className="block mb-1 font-medium">Login as</label>
+            <label className="block mb-2 font-medium text-[#0F2A18]">
+              Login as
+            </label>
+
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className=" w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-[#C8D6CA] rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B3D1E]"
               required
             >
               <option value="">Select role</option>
@@ -57,62 +63,76 @@ const Login = () => {
               <option value="doctor">Doctor</option>
             </select>
           </div>
+
           {/* Email */}
           <div>
-            <label className="block mb-1 font-medium">Email</label>
+            <label className="block mb-2 font-medium text-[#0F2A18]">
+              Email
+            </label>
+
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="example@gmail.com"
+              className="w-full border border-[#C8D6CA] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#0B3D1E]"
               required
             />
           </div>
-{/* Password */}
+
+          {/* Password */}
           <div>
-            <label className="block mb-1 font-medium">Password</label>
+            <label className="block mb-2 font-medium text-[#0F2A18]">
+              Password
+            </label>
+
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="Your password"
+              className="w-full border border-[#C8D6CA] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#0B3D1E]"
               required
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-600 text-sm">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-gray-600 text-white py-2 rounded hover:bg-gray-700 transition"
+            className="w-full bg-[#0B3D1E] text-white py-3 rounded-lg font-semibold hover:bg-[#082B15] transition-all duration-300"
           >
             Log In
           </button>
+
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Don’t have an account?{" "}
+        <p className="text-center text-sm text-[#3A4D3E] mt-6">
+          Don't have an account?{" "}
           <Link
             to="/createaccount"
-            className="text-gray-600 font-medium hover:underline"
+            className="text-[#0B3D1E] font-semibold hover:underline"
           >
-            Create account
+            Create Account
           </Link>
         </p>
-        <p className="text-center text-sm text-gray-500 mt-4">
+
+        <p className="text-center text-sm mt-4">
           <Link
             to="/"
-            className="text-gray-600 font-medium hover:underline"
+            className="text-[#3A4D3E] hover:text-[#0B3D1E] hover:underline"
           >
             Back
           </Link>
         </p>
-        
-        
+
       </div>
     </div>
-  )
-}
-export default Login
+  );
+};
+
+export default Login;

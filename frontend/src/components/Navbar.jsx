@@ -1,6 +1,6 @@
 import React,{useState} from 'react'
 import {Link} from 'react-router-dom'
-import logo from '../assets/images/logo1.png'
+import logo from '../assets/images/logo1_green.png'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,22 +11,22 @@ const Navbar = () => {
     {/* <!-- Logo --> */}
     <div class="flex items-center gap-2">
       <img src={logo} alt="EZ MediWay" class="w-auto h-8"></img>
-      <span class="text-xl font-bold text-slate-900">EZ MediWay</span>
+      <span class="text-xl font-bold text-[#0F2A18]">EZ MediWay</span>
     </div>
 
     {/* <!-- Menu --> */}
-    <ul class="hidden md:flex items-center gap-8 font-medium">
-      <li><Link to="/home" class="hover:text-gray-500">Home</Link></li>
-      <li>< Link to="/about" class="hover:text-gray-500">About</Link></li>
-      <li>< Link to="/doctors" class="hover:text-gray-500">Doctors</Link></li>
-      <li>< Link to="/contact" class="hover:text-gray-500">Contact</Link></li>
-      <li>< Link to="/login" class="hover:text-gray-500">Log in</Link></li>
+    <ul class="hidden md:flex items-center gap-8 font-medium text-[#0F2A18]">
+      <li><Link to="/home" class="hover:text-[#0B3D1E]">Home</Link></li>
+      <li>< Link to="/about" class="hover:text-[#0B3D1E]">About</Link></li>
+      <li>< Link to="/doctors" class="hover:text-[#0B3D1E]">Doctors</Link></li>
+      <li>< Link to="/contact" class="hover:text-[#0B3D1E]">Contact</Link></li>
+      <li>< Link to="/login" class="hover:text-[#0B3D1E]">Log in</Link></li>
 
     </ul>
 
     {/* <!-- CTA Button --> */}
     <div class="hidden md:block">
-      <Link to="/CreateAccount" class="bg-gray-600 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition">
+      <Link to="/CreateAccount" class="bg-[#0B3D1E] text-white px-5 py-2 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300">
         Create Account
       </Link>
     </div>
@@ -35,7 +35,7 @@ const Navbar = () => {
     <div class="md:hidden">
       <button
             onClick={() => setIsOpen(!isOpen)}
-            className="text-2xl"
+            className="text-2xl text-[#0F2A18]"
           >
             ☰
           </button>
@@ -44,26 +44,26 @@ const Navbar = () => {
 
   {/* <!-- Mobile Menu --> */}
   {isOpen && (
-        <div className="md:hidden bg-white px-6 pb-4">
-          <Link to="/home" className="hover:text-gray-500 block py-2" onClick={() => setIsOpen(false)}>
+        <div className="md:hidden bg-white px-6 pb-4 text-[#0F2A18]">
+          <Link to="/home" className="hover:text-[#0B3D1E] block py-2" onClick={() => setIsOpen(false)}>
             Home
           </Link>
-          <Link to="/about" className="hover:text-gray-500 block py-2" onClick={() => setIsOpen(false)}>
+          <Link to="/about" className="hover:text-[#0B3D1E] block py-2" onClick={() => setIsOpen(false)}>
             About
           </Link>
-          <Link to="/doctors" className="hover:text-gray-500 block py-2" onClick={() => setIsOpen(false)}>
+          <Link to="/doctors" className="hover:text-[#0B3D1E] block py-2" onClick={() => setIsOpen(false)}>
             Doctors
           </Link>
-          <Link to="/contact" className="hover:text-gray-500 block py-2" onClick={() => setIsOpen(false)}>
+          <Link to="/contact" className="hover:text-[#0B3D1E] block py-2" onClick={() => setIsOpen(false)}>
             Contact
           </Link>
-          <Link to="/login" className="hover:text-gray-500 block py-2" onClick={() => setIsOpen(false)}>
+          <Link to="/login" className="hover:text-[#0B3D1E] block py-2" onClick={() => setIsOpen(false)}>
             Log in
           </Link>
 
           <Link
             to="/CreateAccount"
-            className="block mt-2 bg-gray-600 text-white text-center py-2 rounded-lg"
+            className="block mt-2 bg-[#0B3D1E] text-white text-center py-2 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300"
             onClick={() => setIsOpen(false)}
           >
             Create Account
@@ -74,4 +74,4 @@ const Navbar = () => {
   )
 }
 
-export default Navbar
+export default Navbar;

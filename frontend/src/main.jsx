@@ -21,6 +21,7 @@ import DoctorDetails from "./pages/DoctorDetails";
 import BookAppointment from "./pages/BookAppointment";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import Profile from "./pages/Profile";
 
 
 
@@ -41,6 +42,7 @@ const router = createBrowserRouter(
       <Route path="book-appointment" element={<BookAppointment />} />
       <Route path="patient/dashboard" element={<PatientDashboard />} />
       <Route path="doctor/dashboard" element={<DoctorDashboard />} />
+      <Route path="profile" element={<Profile />} />
 
     </Route>
 

@@ -1,26 +1,40 @@
 import React from "react";
-import DashboardSidebar from "../components/DashboardSidebar";
-// import DashboardNavbar from "../components/DashboardNavbar";
+
+import { useState, useEffect } from "react";
+import API from "../api";
+
 
 const PatientDashboard = () => {
+
+  const [profile, setProfile] = useState(null);
+
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await API.get("/users/me");
+      setProfile(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
+
   return (
     <div className="flex bg-[#F7FAF7] min-h-screen">
-      {/* Sidebar */}
-      <DashboardSidebar role="patient" />
+      
 
       {/* Main Content */}
       <div className="flex-1">
 
-        {/* <DashboardNavbar
-          title="Patient Dashboard"
-          subtitle="Welcome to EZ MediWay"
-        /> */}
 
         <div className="p-8">
 
           {/* Welcome */}
           <h2 className="text-3xl font-bold text-[#0F2A18]">
-            Welcome, Patient
+            Welcome, {profile?.Name}
           </h2>
 
           <p className="text-[#3A4D3E] mt-2">
@@ -65,7 +79,7 @@ const PatientDashboard = () => {
             </div>
 
           </div>
-                    {/* Appointment History */}
+          {/* Appointment History */}
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mt-8">
 
             <h3 className="text-2xl font-bold text-[#0F2A18] mb-4">

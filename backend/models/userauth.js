@@ -25,10 +25,8 @@ const userAuthSchema = new Schema(
   { timestamps: true }
 );
 
-userAuthSchema.pre("save", async function (next) {
-  if (!this.isModified("Password")) return next();
+userAuthSchema.pre("save", async function () {
+  if (!this.isModified("Password")) return;
   this.Password = await bcrypt.hash(this.Password, 10);
-  next();
 });
-
 module.exports = mongoose.model("UserAuth", userAuthSchema);

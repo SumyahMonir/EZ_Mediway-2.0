@@ -7,8 +7,10 @@ const {getUsers,
     updateUser
 }=require("../controllers/UserController")
 
-const router = express.Router()
+const requireAuth = require("../middleware/requireAuth");
 
+const router = express.Router()
+router.use(requireAuth);
 
 router.get('/', getUsers)
 

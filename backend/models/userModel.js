@@ -15,6 +15,10 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    Email: {
+      type: String,
+      required: true,
+    },
 
     NID: {
       type: String,

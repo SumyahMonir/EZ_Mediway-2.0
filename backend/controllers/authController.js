@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const UserAuth = require("../models/userAuthModel");
+const UserAuth = require("../models/userauth");
 const Users = require("../models/usermodel");
 const Doctor = require("../models/doctormodel");
 
@@ -27,9 +27,9 @@ const registerUser = async (req, res) => {
 
     try {
       if (Role === "patient") {
-        profile = await Users.create({ UserAuthId: auth._id, ...profileFields });
+        profile = await Users.create({ UserAuthId: auth._id, Email:Email,...profileFields });
       } else if (Role === "doctor") {
-        profile = await Doctor.create({ UserAuthId: auth._id, ...profileFields });
+        profile = await Doctor.create({ UserAuthId: auth._id,Email:Email, ...profileFields });
       } else {
         throw new Error("Invalid role.");
       }

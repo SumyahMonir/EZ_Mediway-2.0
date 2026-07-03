@@ -74,11 +74,37 @@ const updateUser = async (req,res)=> {
     res.status(200).json(user)
 }
 
+const getMyPatientProfile = async (req,res)=>{
+
+    try{
+
+        const patient = await Users.findOne({
+            UserAuthId:req.user._id
+        }).populate("UserAuthId","Email Role")
+
+        if(!patient){
+            return res.status(404).json({
+                error:"Patient not found"
+            })
+        }
+
+        res.status(200).json(patient)
+
+    }catch(error){
+
+        res.status(500).json({
+            error:error.message
+        })
+
+    }
+
+}
 
 
 module.exports = {
     getUsers,
     getUser,
+    getMyPatientProfile,
     createUser,
     deleteUser,
     updateUser

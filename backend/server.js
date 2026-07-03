@@ -19,7 +19,7 @@ const errorHandler = require('./middleware/error')
 
 // CORS must come after app is created, before routes
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "http://localhost:5174",
   credentials: true,
 }))
 

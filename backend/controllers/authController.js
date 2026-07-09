@@ -9,7 +9,26 @@ const createToken = (id, role) => {
 };
 
 const registerUser = async (req, res) => {
-  const { Email, Password, Role, ...profileFields } = req.body;
+  const {
+    Email,
+    Password,
+    Role,
+    Name,
+    NID,
+    Phone,
+    Gender,
+    // patient-only
+    Weight,
+    Blood_Grp,
+    // doctor-only
+    ProfessionalTitle,
+    Specialization,
+    Qualifications,
+    RegistrationNumber,
+    Experience,
+    Hospital,
+    ConsultationFee,
+  } = req.body;
 
   try {
     if (!Email || !Password || !Role) {
@@ -27,9 +46,32 @@ const registerUser = async (req, res) => {
 
     try {
       if (Role === "patient") {
-        profile = await Users.create({ UserAuthId: auth._id, Email:Email,...profileFields });
+        profile = await Users.create({
+          UserAuthId: auth._id,
+          email: Email,
+          name: Name,
+          nid: NID,
+          phone: Phone,
+          gender: Gender,
+          weight: Weight,
+          Blood_Grp: Blood_Grp, // adjust key to match your actual Users schema field
+        });
       } else if (Role === "doctor") {
-        profile = await Doctor.create({ UserAuthId: auth._id,Email:Email, ...profileFields });
+        profile = await Doctor.create({
+          UserAuthId: auth._id,
+          email: Email,
+          name: Name,
+          nid: NID,
+          phone: Phone,
+          gender: Gender,
+          professionalTitle: ProfessionalTitle,
+          specialization: Specialization,
+          qualifications: Qualifications,
+          registrationNumber: RegistrationNumber,
+          experience: Experience,
+          hospital: Hospital,
+          consultationFee: ConsultationFee,
+        });
       } else {
         throw new Error("Invalid role.");
       }

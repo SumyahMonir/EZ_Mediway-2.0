@@ -11,36 +11,114 @@ const doctorSchema = new Schema(
       unique: true,
     },
 
-    Name: {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    nid: {
       type: String,
       required: true,
     },
-    Email: {
+
+    phone: {
       type: String,
       required: true,
     },
 
-    NID: {
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
+    professionalTitle: {
+      type: String,
+      required: true,
+      // Example: "Consultant Cardiologist"
+    },
+
+    specialization: {
+      type: String,
+      required: true,
+      // Example: "Cardiology"
+    },
+
+    qualifications: {
+      type: [String],
+      required: true,
+      // Example: ["MBBS", "FCPS (Medicine)", "MD (Cardiology)"]
+    },
+
+    registrationNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
+      // Years
+    },
+
+    hospital: {
       type: String,
       required: true,
     },
 
-    Phone: {
+    consultationFee: {
       type: Number,
       required: true,
+      min: 0,
     },
 
-    Fee: {
-      type: Number,
+    description: {
+      type: String,
+      default: "",
+      maxlength: 1000,
+    },
+    gender: {
+      type: String,
       required: true,
+      enum: {
+        values: ["Male", "Female", "Other"],
+        message: "Gender must be Male, Female, or Other.",
+      },
     },
 
-    License_no: {
+
+    languages: {
+      type: [String],
+      default: ["Bangla"],
+    },
+
+    totalPatients: {
       type: Number,
-      required: true,
+      default: 0,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    isAvailable: {
+      type: Boolean,
+      default: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model("Doctor", doctorSchema);

@@ -35,9 +35,22 @@ const userSchema = new Schema(
       required: true,
     },
 
+    gender: {
+      type: String,
+      required: true,
+      enum: {
+        values: ["Male", "Female", "Other"],
+        message: "Gender must be Male, Female, or Other.",
+      },
+    },
+
     Blood_Grp: {
       type: String,
       required: true,
+      enum: {
+        values: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+        message: "Invalid blood group.",
+      },
     },
   },
   { timestamps: true }

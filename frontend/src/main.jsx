@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-import{
+import {
   createBrowserRouter,
   createRoutesFromElements,
   RouterProvider,
@@ -22,30 +22,60 @@ import BookAppointment from "./pages/BookAppointment";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import Profile from "./pages/Profile";
-
-
-
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App/>}>
-      <Route index element={<Home />} /> //local host diye gelei ami home pabo
+      {/* local host diye gelei ami home pabo */}
+      <Route index element={<Home />} /> //local host ee gele ami home page pabo
       <Route path='home' element={<Home/>}/>
-      <Route path ='about' element={<About/>} />
-      <Route path ='doctors' element={<Doctors/>} />
+      <Route path='about' element={<About/>} />
+      <Route path='doctors' element={<Doctors/>} />
 
       <Route path="doctors/:id" element={<DoctorDetails />} />
 
-      <Route path ='contact' element={<Contact/>} />
-      <Route path ='CreateAccount' element={<CreateAccount/>} />
-      <Route path ='login' element={<Login/>} />
-      <Route path="book-appointment" element={<BookAppointment />} />
-      <Route path="patient/dashboard" element={<PatientDashboard />} />
-      <Route path="doctor/dashboard" element={<DoctorDashboard />} />
-      <Route path="profile" element={<Profile />} />
+      <Route path='contact' element={<Contact/>} />
+      <Route path='CreateAccount' element={<CreateAccount/>} />
+      <Route path='login' element={<Login/>} />
 
+      {/* Protected routes — require a logged-in user */}
+      <Route
+        path="book-appointment"
+        element={
+          <ProtectedRoute>
+            <BookAppointment />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="patient/dashboard"
+        element={
+          <ProtectedRoute allowedRole="patient">
+            <PatientDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="doctor/dashboard"
+        element={
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
     </Route>
-
   )
 )
 

@@ -2,11 +2,37 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../api";
 
+// Small reusable wrapper so every input has a title above it
+const Field = ({ label, children }) => (
+  <div>
+    <label className="block mb-2 font-medium text-[#0F2A18]">{label}</label>
+    {children}
+  </div>
+);
+
+// Step list depends on role — doctor gets 4 dedicated info slides
+const getSteps = (role) => {
+  if (role === "doctor") {
+    return [
+      "role",
+      "personal",
+      "doctor-professional", // slide 1/4
+      "doctor-credentials",  // slide 2/4
+      "doctor-practice",     // slide 3/4
+      "doctor-photo",        // slide 4/4
+      "password",
+    ];
+  }
+  if (role === "patient") {
+    return ["role", "personal", "patient-info", "password"];
+  }
+  return ["role"];
+};
+
 const CreateAccount = () => {
   const navigate = useNavigate();
 
-  // Wizard step: 1 = role, 2 = info, 3 = password
-  const [step, setStep] = useState(1);
+  const [stepIndex, setStepIndex] = useState(0);
 
   const [role, setRole] = useState("");
 
@@ -15,6 +41,7 @@ const CreateAccount = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [nid, setNid] = useState("");
+  const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -23,47 +50,110 @@ const CreateAccount = () => {
   const [blood, setBlood] = useState("");
 
   // Doctor fields
-  const [fee, setFee] = useState("");
-  const [license, setLicense] = useState("");
+  const [professionalTitle, setProfessionalTitle] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [qualifications, setQualifications] = useState(""); // comma-separated input
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [experience, setExperience] = useState("");
+  const [hospital, setHospital] = useState("");
+  const [consultationFee, setConsultationFee] = useState("");
+
+  // Doctor profile picture
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // ---- Step navigation ----
+  const steps = getSteps(role);
+  const currentStepKey = steps[stepIndex] || "role";
 
-  const goToInfoStep = () => {
-    if (!role) {
-      return setError("Please select a role.");
+  // ---- Image select handler ----
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      return setError("Please select a valid image file.");
     }
+    if (file.size > 5 * 1024 * 1024) {
+      return setError("Image must be smaller than 5MB.");
+    }
+
     setError("");
-    setStep(2);
+    setProfileImageFile(file);
+    setProfileImagePreview(URL.createObjectURL(file));
   };
 
-  const goToPasswordStep = (e) => {
-    e.preventDefault();
+  const removeImage = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview("");
+  };
 
-    if (!name || !nid || !email || !phone) {
-      return setError("Please fill in all fields.");
-    }
+  // ---- Step validation ----
 
-    if (!email.endsWith("@gmail.com")) {
-      return setError("Please use a valid @gmail.com email.");
-    }
+  const validateStep = () => {
+    switch (currentStepKey) {
+      case "role":
+        if (!role) return "Please select a role.";
+        break;
 
-    if (role === "patient" && (!weight || !blood)) {
-      return setError("Please fill in all fields.");
-    }
+      case "personal":
+        if (!name || !nid || !email || !phone || !gender) {
+          return "Please fill in all fields.";
+        }
+        if (!email.endsWith("@gmail.com")) {
+          return "Please use a valid @gmail.com email.";
+        }
+        break;
 
-    if (role === "doctor" && (!fee || !license)) {
-      return setError("Please fill in all fields.");
+      case "patient-info":
+        if (!weight || !blood) return "Please fill in all fields.";
+        break;
+
+      case "doctor-professional":
+        if (!professionalTitle || !specialization) {
+          return "Please fill in all fields.";
+        }
+        break;
+
+      case "doctor-credentials":
+        if (!qualifications || !registrationNumber) {
+          return "Please fill in all fields.";
+        }
+        break;
+
+      case "doctor-practice":
+        if (!experience || !hospital || !consultationFee) {
+          return "Please fill in all fields.";
+        }
+        break;
+
+      case "doctor-photo":
+        // optional — no validation, doctors can skip and add later
+        break;
+
+      default:
+        break;
     }
+    return "";
+  };
+
+  // ---- Navigation ----
+
+  const goNext = (e) => {
+    if (e) e.preventDefault();
+    const validationError = validateStep();
+    if (validationError) return setError(validationError);
 
     setError("");
-    setStep(3);
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   };
 
   const goBack = () => {
     setError("");
-    setStep((prev) => prev - 1);
+    setStepIndex((i) => Math.max(i - 1, 0));
   };
 
   // ---- Final submit ----
@@ -74,53 +164,93 @@ const CreateAccount = () => {
     if (password.length < 6) {
       return setError("Password must be at least 6 characters.");
     }
-
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
     }
 
     try {
       setError("");
+      setSubmitting(true);
+
+      let res;
 
       if (role === "patient") {
-        await API.post("/auth/register", {
+        res = await API.post("/auth/register", {
           Role: role,
           Name: name,
           NID: nid,
           Phone: Number(phone),
           Email: email,
+          Gender: gender,
           Password: password,
           Weight: Number(weight),
           Blood_Grp: blood,
         });
 
         alert("Patient account created successfully!");
-        navigate("/login");
       }
 
       if (role === "doctor") {
-        await API.post("/auth/register", {
+        res = await API.post("/auth/register", {
           Role: role,
           Name: name,
           NID: nid,
           Phone: Number(phone),
           Email: email,
+          Gender: gender,
           Password: password,
-          Fee: Number(fee),
-          License_no: Number(license),
+          ConsultationFee: Number(consultationFee),
+          RegistrationNumber: registrationNumber.trim(),
+          ProfessionalTitle: professionalTitle.trim(),
+          Specialization: specialization.trim(),
+          Qualifications: qualifications
+            .split(",")
+            .map((q) => q.trim())
+            .filter(Boolean),
+          Experience: Number(experience),
+          Hospital: hospital.trim(),
         });
 
+        // If a profile picture was selected, upload it right after registration.
+        // ASSUMPTION: /auth/register returns a token we can use to authenticate
+        // this follow-up request. Adjust the field name below to match your
+        // actual response shape (e.g. res.data.token, res.data.accessToken...).
+        const token = res?.data?.token;
+
+        if (profileImageFile && token) {
+          const formData = new FormData();
+          formData.append("image", profileImageFile);
+
+          try {
+            await API.post("/doctors/upload-profile-image", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+          } catch (imgErr) {
+            console.error("Profile image upload failed:", imgErr);
+            // Registration already succeeded, so we don't block on this —
+            // just let the user know they can add a photo later.
+            alert(
+              "Account created, but the profile picture upload failed. You can add it later from your profile."
+            );
+          }
+        }
+
         alert("Doctor account created successfully!");
-        navigate("/login");
       }
+
+      navigate("/login");
     } catch (err) {
       console.error(err);
-
       if (err.response?.data?.error) {
         setError(err.response.data.error);
       } else {
         setError("Something went wrong.");
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -140,41 +270,40 @@ const CreateAccount = () => {
         </p>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {[1, 2, 3].map((s) => (
+        <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
+          {steps.map((_, i) => (
             <div
-              key={s}
-              className={`h-2 w-10 rounded-full transition-all ${
-                s <= step ? "bg-[#0B3D1E]" : "bg-[#D8E5DA]"
+              key={i}
+              className={`h-2 w-8 rounded-full transition-all ${
+                i <= stepIndex ? "bg-[#0B3D1E]" : "bg-[#D8E5DA]"
               }`}
             />
           ))}
         </div>
 
-        {/* ---- STEP 1: Role only ---- */}
-        {step === 1 && (
+        {/* ---- STEP: Role ---- */}
+        {currentStepKey === "role" && (
           <div className="space-y-4">
-            <div>
-              <label className="block mb-2 font-medium text-[#0F2A18]">
-                Select Role
-              </label>
-
+            <Field label="Select Role">
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  setStepIndex(0); // reset if role changes after some progress
+                }}
                 className={inputClass}
               >
                 <option value="">Choose Role</option>
                 <option value="patient">Patient</option>
                 <option value="doctor">Doctor</option>
               </select>
-            </div>
+            </Field>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               type="button"
-              onClick={goToInfoStep}
+              onClick={goNext}
               className="w-full bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
             >
               Next
@@ -195,88 +324,67 @@ const CreateAccount = () => {
           </div>
         )}
 
-        {/* ---- STEP 2: Info fields (role-specific) ---- */}
-        {step === 2 && (
-          <form onSubmit={goToPasswordStep} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputClass}
-              required
-            />
+        {/* ---- STEP: Personal info (common) ---- */}
+        {currentStepKey === "personal" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Personal Information
+            </h2>
 
-            <input
-              type="text"
-              placeholder="NID Number"
-              value={nid}
-              onChange={(e) => setNid(e.target.value)}
-              className={inputClass}
-              required
-            />
+            <Field label="Full Name">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
 
-            <input
-              type="email"
-              placeholder="example@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              required
-            />
+            <Field label="NID Number">
+              <input
+                type="text"
+                value={nid}
+                onChange={(e) => setNid(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
 
-            <input
-              type="number"
-              placeholder="Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
-              required
-            />
+            <Field label="Email">
+              <input
+                type="email"
+                placeholder="example@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
 
-            {role === "patient" && (
-              <>
-                <input
-                  type="number"
-                  placeholder="Weight"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className={inputClass}
-                  required
-                />
+            <Field label="Phone Number">
+              <input
+                type="number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
 
-                <input
-                  type="text"
-                  placeholder="Blood Group"
-                  value={blood}
-                  onChange={(e) => setBlood(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </>
-            )}
-
-            {role === "doctor" && (
-              <>
-                <input
-                  type="number"
-                  placeholder="Consultation Fee"
-                  value={fee}
-                  onChange={(e) => setFee(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-
-                <input
-                  type="number"
-                  placeholder="License Number"
-                  value={license}
-                  onChange={(e) => setLicense(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </>
-            )}
+            <Field label="Gender">
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className={inputClass}
+                required
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Others">Others</option>
+              </select>
+            </Field>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -288,7 +396,6 @@ const CreateAccount = () => {
               >
                 Back
               </button>
-
               <button
                 type="submit"
                 className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
@@ -299,26 +406,33 @@ const CreateAccount = () => {
           </form>
         )}
 
-        {/* ---- STEP 3: Password ---- */}
-        {step === 3 && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              required
-            />
+        {/* ---- STEP: Patient info ---- */}
+        {currentStepKey === "patient-info" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Health Information
+            </h2>
 
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputClass}
-              required
-            />
+            <Field label="Weight (kg)">
+              <input
+                type="number"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Blood Group">
+              <input
+                type="text"
+                placeholder="e.g. A+, O-, AB+"
+                value={blood}
+                onChange={(e) => setBlood(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -330,12 +444,277 @@ const CreateAccount = () => {
               >
                 Back
               </button>
-
               <button
                 type="submit"
                 className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
               >
-                Create Account
+                Next
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ---- STEP: Doctor slide 1/4 — Professional identity ---- */}
+        {currentStepKey === "doctor-professional" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Professional Details <span className="text-sm text-[#3A4D3E] font-normal">(1 of 4)</span>
+            </h2>
+
+            <Field label="Professional Title">
+              <input
+                type="text"
+                placeholder="e.g. Consultant Cardiologist"
+                value={professionalTitle}
+                onChange={(e) => setProfessionalTitle(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Specialization">
+              <input
+                type="text"
+                placeholder="e.g. Cardiology"
+                value={specialization}
+                onChange={(e) => setSpecialization(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-1/2 bg-white border border-[#0B3D1E] text-[#0B3D1E] py-3 rounded-lg hover:bg-[#F0F5F1] transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
+              >
+                Next
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ---- STEP: Doctor slide 2/4 — Credentials ---- */}
+        {currentStepKey === "doctor-credentials" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Credentials <span className="text-sm text-[#3A4D3E] font-normal">(2 of 4)</span>
+            </h2>
+
+            <Field label="Qualifications">
+              <input
+                type="text"
+                placeholder="Comma-separated, e.g. MBBS, FCPS (Medicine)"
+                value={qualifications}
+                onChange={(e) => setQualifications(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Registration Number">
+              <input
+                type="text"
+                placeholder="e.g. BMDC-A-12345"
+                value={registrationNumber}
+                onChange={(e) => setRegistrationNumber(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-1/2 bg-white border border-[#0B3D1E] text-[#0B3D1E] py-3 rounded-lg hover:bg-[#F0F5F1] transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
+              >
+                Next
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ---- STEP: Doctor slide 3/4 — Practice details ---- */}
+        {currentStepKey === "doctor-practice" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Practice Details <span className="text-sm text-[#3A4D3E] font-normal">(3 of 4)</span>
+            </h2>
+
+            <Field label="Years of Experience">
+              <input
+                type="number"
+                min="0"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Hospital / Clinic">
+              <input
+                type="text"
+                value={hospital}
+                onChange={(e) => setHospital(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Consultation Fee">
+              <input
+                type="number"
+                min="0"
+                value={consultationFee}
+                onChange={(e) => setConsultationFee(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-1/2 bg-white border border-[#0B3D1E] text-[#0B3D1E] py-3 rounded-lg hover:bg-[#F0F5F1] transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
+              >
+                Next
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ---- STEP: Doctor slide 4/4 — Profile picture ---- */}
+        {currentStepKey === "doctor-photo" && (
+          <form onSubmit={goNext} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Profile Picture <span className="text-sm text-[#3A4D3E] font-normal">(4 of 4)</span>
+            </h2>
+
+            <p className="text-sm text-[#3A4D3E]">
+              Add a professional photo so patients can recognize you. This step is optional — you can add it later.
+            </p>
+
+            {profileImagePreview && (
+              <div className="flex justify-center">
+                <img
+                  src={profileImagePreview}
+                  alt="Profile preview"
+                  className="w-28 h-28 rounded-full object-cover border border-[#D8E5DA]"
+                />
+              </div>
+            )}
+
+            <Field label="Upload Photo">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className={inputClass}
+              />
+            </Field>
+
+            {profileImageFile && (
+              <button
+                type="button"
+                onClick={removeImage}
+                className="text-sm text-red-500 hover:underline"
+              >
+                Remove photo
+              </button>
+            )}
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-1/2 bg-white border border-[#0B3D1E] text-[#0B3D1E] py-3 rounded-lg hover:bg-[#F0F5F1] transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300"
+              >
+                Next
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ---- STEP: Password ---- */}
+        {currentStepKey === "password" && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#0F2A18]">
+              Set Your Password
+            </h2>
+
+            <Field label="Password">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            <Field label="Confirm Password">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </Field>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-1/2 bg-white border border-[#0B3D1E] text-[#0B3D1E] py-3 rounded-lg hover:bg-[#F0F5F1] transition-all duration-300"
+                disabled={submitting}
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                className="w-1/2 bg-[#0B3D1E] hover:bg-[#082B15] text-white py-3 rounded-lg shadow-md transition-all duration-300 disabled:opacity-60"
+                disabled={submitting}
+              >
+                {submitting ? "Creating..." : "Create Account"}
               </button>
             </div>
           </form>

@@ -11,37 +11,35 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
 
   const token = localStorage.getItem("token");
-
   const role = localStorage.getItem("role");
 
   const [profile, setProfile] = useState(null);
-  //const displayName = profile?.Name || "User";
   const name = localStorage.getItem("email");
-  const displayName = name || "User";
+  const displayName = profile?.name || name || "User";
 
   const isLoggedIn = Boolean(token);
 
   useEffect(() => {
-  if (!token) return;
+    if (!token) return;
 
-  const fetchProfile = async () => {
-    try {
-      const endpoint = role === "doctor" ? "/doctors/me" : "/users/me";
+    const fetchProfile = async () => {
+      try {
+        const endpoint = role === "doctor" ? "/doctors/me" : "/users/me";
 
-      const res = await API.get(endpoint, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const res = await API.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      setProfile(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+        setProfile(res.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
 
-  fetchProfile();
-}, [token, role]);
+    fetchProfile();
+  }, [token, role]);
 
   // Close profile dropdown when clicking outside it
   useEffect(() => {
@@ -62,28 +60,36 @@ const Navbar = () => {
     setIsOpen(false);
     navigate("/login");
   };
+
   const handleDashboard = () => {
-  setProfileOpen(false);
-  setIsOpen(false);
+    setProfileOpen(false);
+    setIsOpen(false);
 
-  if (role === "doctor") {
-    navigate("/doctor/dashboard");
-  } else {
-    navigate("/patient/dashboard");
-  }
-};
+    if (role === "doctor") {
+      navigate("/doctor/dashboard");
+    } else {
+      navigate("/patient/dashboard");
+    }
+  };
 
-const handleProfile = () => {
-  setProfileOpen(false);
-  setIsOpen(false);
+  const handleProfile = () => {
+    setProfileOpen(false);
+    setIsOpen(false);
 
-  if (role === "doctor") {
-    navigate("/profile");
-  } else {
-    navigate("/profile");
-  }
-};
+    if (role === "doctor") {
+      navigate("/profile");
+    } else {
+      navigate("/profile");
+    }
+  };
 
+  // Use the real uploaded photo if it exists, otherwise fall back to a generated avatar
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    displayName
+  )}&background=0B3D1E&color=ffffff`;
+
+  const avatarUrl = profile?.profileImage || fallbackAvatar;
+  console.log("Avatar URL:", avatarUrl);
 
   return (
     <nav className="bg-white shadow-md fixed top-0 left-0 w-full z-50">
@@ -122,11 +128,14 @@ const handleProfile = () => {
                 className="flex items-center gap-3 focus:outline-none"
               >
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    displayName
-                  )}&background=0B3D1E&color=ffffff`}
+                  src={avatarUrl}
+                  onError={(e) => {
+                    console.error("Image failed to load:", e.currentTarget.src);
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = fallbackAvatar;
+                  }}
                   alt="Profile"
-                  className="w-10 h-10 rounded-full border-2 border-[#D8E5DA]"
+                  className="w-10 h-10 rounded-full border-2 border-[#D8E5DA] object-cover"
                 />
 
                 <span className="font-medium text-[#0F2A18]">
@@ -134,9 +143,8 @@ const handleProfile = () => {
                 </span>
 
                 <svg
-                  className={`w-4 h-4 text-[#3A4D3E] transition-transform duration-200 ${
-                    profileOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-4 h-4 text-[#3A4D3E] transition-transform duration-200 ${profileOpen ? "rotate-180" : ""
+                    }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -172,7 +180,7 @@ const handleProfile = () => {
                   >
                     Profile
                   </button>
-                    
+
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-3 text-[#0F2A18] hover:bg-[#F0F5F1] transition-colors duration-200"
@@ -230,11 +238,13 @@ const handleProfile = () => {
             <div className="mt-2 border-t border-[#D8E5DA] pt-3">
               <div className="flex items-center gap-3 py-2">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    displayName
-                  )}&background=0B3D1E&color=ffffff`}
+                  src={avatarUrl}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = fallbackAvatar;
+                  }}
                   alt="Profile"
-                  className="w-9 h-9 rounded-full border-2 border-[#D8E5DA]"
+                  className="w-9 h-9 rounded-full border-2 border-[#D8E5DA] object-cover"
                 />
                 <div>
                   <p className="font-medium text-[#0F2A18]">{displayName}</p>
@@ -257,20 +267,6 @@ const handleProfile = () => {
               >
                 Profile
               </button>
-              
-          {/* <button onClick={handleDashboard} 
-          className="w-full text-left py-2 text-[#0F2A18] hover:text-[#0B3D1E]">
-            <Link to="/doctor/dashboard" className="hover:text-[#0B3D1E]">
-            Dashboard
-            </Link>
-            </button>
-
-          <button onClick={handleProfile}
-          className="w-full text-left py-2 text-[#0F2A18] hover:text-[#0B3D1E]">
-            <Link to="/" className="hover:text-[#0B3D1E]">
-            Profile
-            </Link>
-            </button> */}
 
               <button
                 onClick={handleLogout}

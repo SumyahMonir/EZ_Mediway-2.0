@@ -2,41 +2,149 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../api";
 
+const Field = ({ label, children }) => (
+  <div>
+    <label className="font-semibold text-[#0F2A18]">{label}</label>
+    {children}
+  </div>
+);
+
+const ReadOnlyInput = ({ value }) => (
+  <input
+    type="text"
+    value={value || ""}
+    readOnly
+    className="w-full mt-2 border rounded-lg p-3 bg-gray-50 text-gray-700"
+  />
+);
+
+const EditableInput = ({ value, onChange, type = "text" }) => (
+  <input
+    type={type}
+    value={value ?? ""}
+    onChange={onChange}
+    className="w-full mt-2 border rounded-lg p-3 focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E] outline-none"
+  />
+);
 
 const Profile = () => {
-  const name = localStorage.getItem("email");
-  const displayName = name || "User";
-
   const role = localStorage.getItem("role") || "patient";
+  const token = localStorage.getItem("token");
+  const emailFallback = localStorage.getItem("email") || "User";
+
   const [profile, setProfile] = useState(null);
-  const dashboardRoute =
-  role === "doctor"
-    ? "/doctor/dashboard"
-    : "/patient/dashboard";
+  const [formData, setFormData] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  const dashboardRoute = role === "doctor" ? "/doctor/dashboard" : "/patient/dashboard";
 
-      const endpoint = role === "doctor" ? "/doctors/me" : "/users/me";
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const endpoint = role === "doctor" ? "/doctors/me" : "/users/me";
 
-      const res = await API.get(endpoint, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const res = await API.get(endpoint, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      console.log("PROFILE DATA:", res.data);
+        setProfile(res.data);
+        setFormData(res.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
 
-      setProfile(res.data);
-    } catch (err) {
-      console.log(err);
-    }
+    fetchProfile();
+  }, [role, token]);
+
+  const displayName = profile?.name || emailFallback;
+
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    displayName
+  )}&background=0B3D1E&color=ffffff&size=180`;
+
+  const avatarUrl = profile?.profileImage || fallbackAvatar;
+
+  const handleFieldChange = (field) => (e) => {
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  fetchProfile();
-}, []);
+  const handleQualificationsChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      qualificationsInput: e.target.value, // raw text while typing
+    }));
+  };
+
+  const startEditing = () => {
+    setFormData({
+      ...profile,
+      qualificationsInput: (profile?.qualifications || []).join(", "),
+    });
+    setIsEditing(true);
+    setError("");
+  };
+
+  const cancelEditing = () => {
+    setFormData(profile);
+    setIsEditing(false);
+    setError("");
+  };
+
+  const handleSave = async () => {
+    if (!profile?._id) {
+      return setError("Missing profile ID — cannot save.");
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+
+      let payload;
+
+      if (role === "doctor") {
+        payload = {
+          name: formData.name,
+          phone: formData.phone,
+          professionalTitle: formData.professionalTitle,
+          specialization: formData.specialization,
+          qualifications: formData.qualificationsInput
+            .split(",")
+            .map((q) => q.trim())
+            .filter(Boolean),
+          hospital: formData.hospital,
+          experience: Number(formData.experience),
+          consultationFee: Number(formData.consultationFee),
+          description: formData.description,
+        };
+      } else {
+        // ASSUMPTION: patient (Users) schema uses these field names.
+        // Not yet confirmed against your actual usermodel.js.
+        payload = {
+          name: formData.name,
+          phone: formData.phone,
+          weight: Number(formData.weight),
+          bloodGroup: formData.bloodGroup,
+        };
+      }
+
+      const endpoint = role === "doctor" ? `/doctors/${profile._id}` : `/users/${profile._id}`;
+
+      const res = await API.patch(endpoint, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setProfile(res.data);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "Failed to save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <section className="bg-[#F7FAF7] min-h-screen py-10">
@@ -44,223 +152,179 @@ useEffect(() => {
 
         {/* Heading */}
         <div className="bg-white rounded-2xl shadow-md border border-[#D8E5DA] p-8">
-
           <div className="flex flex-col md:flex-row items-center gap-8">
-
-            {/* Profile Image */}
             <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    displayName
-                  )}&background=0B3D1E&color=ffffff`}
-                  alt="Profile"
-                  className="w-40 h-40 rounded-full border-4 border-[#D8E5DA]"
-                />
-            {/* <img
-              src="https://ui-avatars.com/api/?name=User&background=0B3D1E&color=ffffff&size=180"
+              src={avatarUrl}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = fallbackAvatar;
+              }}
               alt="Profile"
-              className="w-40 h-40 rounded-full border-4 border-[#D8E5DA]"
-            /> */}
+              className="w-40 h-40 rounded-full border-4 border-[#D8E5DA] object-cover"
+            />
 
-            {/* Basic Info */}
             <div>
-
-              <h2>
-                {role === "doctor"
-                    ? `Dr. ${profile?.Name || ""}`
-                    : profile?.Name || ""}
+              <h2 className="text-2xl font-bold text-[#0F2A18]">
+                {role === "doctor" ? `Dr. ${profile?.name || ""}` : profile?.name || ""}
               </h2>
 
               <p className="text-[#3A4D3E] mt-2">
-                {role === "doctor"
-                  ? "General Physician"
-                  : "Patient"}
+                {role === "doctor" ? profile?.professionalTitle || "—" : "Patient"}
               </p>
 
               <p className="mt-1 text-gray-500">
-                {role === "doctor"
-                  ? "Apollo Hospital"
-                  : "Regular Patient"}
+                {role === "doctor" ? profile?.hospital || "—" : profile?.email || ""}
               </p>
-
             </div>
-
           </div>
-
         </div>
 
         {/* Information */}
-
         <div className="bg-white rounded-2xl shadow-md border border-[#D8E5DA] p-8 mt-8">
+          <h3 className="text-2xl font-bold text-[#0F2A18] mb-6">Personal Information</h3>
 
-          <h3 className="text-2xl font-bold text-[#0F2A18] mb-6">
-            Personal Information
-          </h3>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
 
           <div className="grid md:grid-cols-2 gap-6">
 
-            <div>
-              <label className="font-semibold">
-                Full Name
-              </label>
+            <Field label="Full Name">
+              {isEditing ? (
+                <EditableInput value={formData?.name} onChange={handleFieldChange("name")} />
+              ) : (
+                <ReadOnlyInput value={role === "doctor" ? `Dr. ${profile?.name || ""}` : profile?.name} />
+              )}
+            </Field>
 
-              <input
-  type="text"
-  value={role === "doctor" ? `Dr. ${profile?.Name || ""}` : profile?.Name || ""}
-  readOnly
-  className="w-full mt-2 border rounded-lg p-3"
-/>
-            </div>
+            <Field label="Email">
+              {/* email intentionally not editable — tied to auth account */}
+              <ReadOnlyInput value={profile?.email} />
+            </Field>
 
-            <div>
-              <label className="font-semibold">
-                Email
-              </label>
+            <Field label="Phone">
+              {isEditing ? (
+                <EditableInput value={formData?.phone} onChange={handleFieldChange("phone")} />
+              ) : (
+                <ReadOnlyInput value={profile?.phone} />
+              )}
+            </Field>
 
-              <input
-                type="email"
-                value={profile?.Email || ""}
-                readOnly
-                className="w-full mt-2 border rounded-lg p-3"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold">
-                Phone
-              </label>
-
-              <input
-                type="text"
-                value={profile?.Phone || ""}
-                readOnly
-                className="w-full mt-2 border rounded-lg p-3"
-              />
-            </div>
+            <Field label="Gender">
+              <ReadOnlyInput value={profile?.gender} />
+            </Field>
 
             {role === "patient" && (
               <>
-                <div>
-                  <label className="font-semibold">
-                    Blood Group
-                  </label>
+                <Field label="Blood Group">
+                  {isEditing ? (
+                    <EditableInput
+                      value={formData?.bloodGroup}
+                      onChange={handleFieldChange("bloodGroup")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.bloodGroup} />
+                  )}
+                </Field>
 
-                  <input
-                    type="text"
-                    value={profile?.Blood_Grp || ""}
-                    readOnly
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold">
-                    Weight
-                  </label>
-
-                  <input
-                    type="text"
-                    value={profile?.Weight || ""}
-                    readOnly
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold">
-                    Address
-                  </label>
-
-                  <input
-                    type="text"
-                    value="Chattogram"
-                    readOnly
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
+                <Field label="Weight (kg)">
+                  {isEditing ? (
+                    <EditableInput
+                      type="number"
+                      value={formData?.weight}
+                      onChange={handleFieldChange("weight")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.weight} />
+                  )}
+                </Field>
               </>
             )}
 
             {role === "doctor" && (
               <>
-                <div>
-                  <label className="font-semibold">
-                    Specialization
-                  </label>
+                <Field label="Professional Title">
+                  {isEditing ? (
+                    <EditableInput
+                      value={formData?.professionalTitle}
+                      onChange={handleFieldChange("professionalTitle")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.professionalTitle} />
+                  )}
+                </Field>
 
-                  <input
-                    type="text"
-                    //value="General Physician"
-                    value=""
-                    
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
+                <Field label="Specialization">
+                  {isEditing ? (
+                    <EditableInput
+                      value={formData?.specialization}
+                      onChange={handleFieldChange("specialization")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.specialization} />
+                  )}
+                </Field>
 
-                <div>
-                  <label className="font-semibold">
-                    Experience
-                  </label>
+                <Field label="Qualifications">
+                  {isEditing ? (
+                    <EditableInput
+                      value={formData?.qualificationsInput}
+                      onChange={handleQualificationsChange}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={(profile?.qualifications || []).join(", ")} />
+                  )}
+                </Field>
 
-                  <input
-                    type="text"
-                    //value="8 Years"
-                    value=""
+                <Field label="Registration Number">
+                  {/* not editable — tied to verified credentials */}
+                  <ReadOnlyInput value={profile?.registrationNumber} />
+                </Field>
 
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
+                <Field label="Experience (years)">
+                  {isEditing ? (
+                    <EditableInput
+                      type="number"
+                      value={formData?.experience}
+                      onChange={handleFieldChange("experience")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.experience} />
+                  )}
+                </Field>
 
-                <div>
-                  <label className="font-semibold">
-                    Hospital
-                  </label>
+                <Field label="Hospital">
+                  {isEditing ? (
+                    <EditableInput value={formData?.hospital} onChange={handleFieldChange("hospital")} />
+                  ) : (
+                    <ReadOnlyInput value={profile?.hospital} />
+                  )}
+                </Field>
 
-                  <input
-                    type="text"
-                    //value="Apollo Hospital"
-                    value=""
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
+                <Field label="Consultation Fee">
+                  {isEditing ? (
+                    <EditableInput
+                      type="number"
+                      value={formData?.consultationFee}
+                      onChange={handleFieldChange("consultationFee")}
+                    />
+                  ) : (
+                    <ReadOnlyInput value={profile?.consultationFee} />
+                  )}
+                </Field>
 
-                <div>
-                  <label className="font-semibold">
-                    License No
-                  </label>
-
-                  <input
-                    type="text"
-                    value={profile?.License_no || ""}
-                    readOnly
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold">
-                    Consultation Fee
-                  </label>
-
-                  <input
-                    type="text"
-                    value={profile?.Fee || ""}
-                    readOnly
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold">
-                    Available Time
-                  </label>
-
-                  <input
-                    type="text"
-                    //value="09:00 AM - 05:00 PM"
-                    value=""
-                    
-                    className="w-full mt-2 border rounded-lg p-3"
-                  />
+                <div className="md:col-span-2">
+                  <Field label="Description">
+                    {isEditing ? (
+                      <textarea
+                        value={formData?.description ?? ""}
+                        onChange={handleFieldChange("description")}
+                        maxLength={1000}
+                        rows={4}
+                        className="w-full mt-2 border rounded-lg p-3 focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E] outline-none"
+                      />
+                    ) : (
+                      <p className="mt-2 text-gray-700">{profile?.description || "—"}</p>
+                    )}
+                  </Field>
                 </div>
               </>
             )}
@@ -268,22 +332,41 @@ useEffect(() => {
           </div>
 
           {/* Buttons */}
-
           <div className="flex gap-4 mt-10">
+            {!isEditing ? (
+              <button
+                onClick={startEditing}
+                className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg hover:bg-[#082B15] transition"
+              >
+                Edit Profile
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg hover:bg-[#082B15] transition disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
 
-            <button className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg hover:bg-[#082B15] transition">
-              Edit Profile
-            </button>
+                <button
+                  onClick={cancelEditing}
+                  disabled={saving}
+                  className="bg-white border border-[#0B3D1E] text-[#0B3D1E] px-6 py-3 rounded-lg hover:bg-[#F0F5F1] transition"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
 
             <Link
-                to={dashboardRoute}
-                className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition"
-                >
-                Back
+              to={dashboardRoute}
+              className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+            >
+              Back
             </Link>
-
           </div>
-
         </div>
 
       </div>

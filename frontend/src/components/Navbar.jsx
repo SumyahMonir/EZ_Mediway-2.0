@@ -67,7 +67,10 @@ const Navbar = () => {
 
     if (role === "doctor") {
       navigate("/doctor/dashboard");
-    } else {
+    }else if (role === "admin") {
+      navigate("/admin/dashboard");
+    } 
+    else {
       navigate("/patient/dashboard");
     }
   };

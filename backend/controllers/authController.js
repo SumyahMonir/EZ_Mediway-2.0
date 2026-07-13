@@ -54,7 +54,7 @@ const registerUser = async (req, res) => {
           phone: Phone,
           gender: Gender,
           weight: Weight,
-          Blood_Grp: Blood_Grp, // adjust key to match your actual Users schema field
+          bloodGroup: Blood_Grp, // adjust key to match your actual Users schema field
         });
       } else if (Role === "doctor") {
         profile = await Doctor.create({
@@ -72,7 +72,15 @@ const registerUser = async (req, res) => {
           hospital: Hospital,
           consultationFee: ConsultationFee,
         });
-      } else {
+      }
+      //admin
+      else if (Role === "admin") {
+
+      // admin er jonno profile lagbe na
+      profile = null;
+
+} 
+      else {
         throw new Error("Invalid role.");
       }
     } catch (profileErr) {

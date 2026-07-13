@@ -30,11 +30,11 @@ useEffect(() => {
       <div className="flex-1">
 
 
-        <div className="p-8">
+        <div className="p-8 pt-28">
 
           {/* Welcome */}
           <h2 className="text-3xl font-bold text-[#0F2A18]">
-            Welcome, {profile?.Name}
+            Welcome, {profile?.name}
           </h2>
 
           <p className="text-[#3A4D3E] mt-2">

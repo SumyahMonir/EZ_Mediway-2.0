@@ -25,6 +25,7 @@ useEffect(() => {
   fetchProfile();
 }, []);
 
+
   return (
     // <div className="flex bg-[#F7FAF7] min-h-screen">
     <div className="flex bg-[#F7FAF7] pt-24 pb-10">
@@ -37,7 +38,7 @@ useEffect(() => {
 
           <div>
             <h1 className="text-4xl font-bold text-[#0F2A18]">
-              Welcome, Dr. {profile?.Name || "Doctor"} 👋
+              Welcome, Dr. {profile?.name} 
             </h1>
 
             <p className="text-[#4A5C4F] mt-2">

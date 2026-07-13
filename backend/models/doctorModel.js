@@ -22,6 +22,7 @@ const doctorSchema = new Schema(
       required: true,
       lowercase: true,
       trim: true,
+      unique: true,
     },
 
     nid: {

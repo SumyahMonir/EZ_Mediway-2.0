@@ -30,10 +30,12 @@ const getUser = async (req, res) => {
 // NOTE: creating a patient directly is no longer how registration works.
 // Use POST /api/auth/register with Role: "patient" instead.
 const createUser = async (req, res) => {
-    const { UserAuthId, Name, NID, Phone, Weight, Blood_Grp } = req.body
+    const { UserAuthId, name, email, nid, phone, weight, gender, bloodGroup } = req.body
 
     try {
-        const user = await Users.create({ UserAuthId, Name, NID, Phone, Weight, Blood_Grp })
+        const user = await Users.create({ 
+            UserAuthId, name, email, nid, phone, weight, gender, bloodGroup 
+        })
         res.status(201).json(user)
     } catch (error) {
         res.status(400).json({ error: error.message })
@@ -63,9 +65,12 @@ const updateUser = async (req,res)=> {
         return res.status(404).json({error:"No Such user"})
     }
 
-    const user = await Users.findOneAndUpdate({_id:id},{
-        ...req.body
-    })
+    const user = await Users.findOneAndUpdate({_id:id},
+    
+    {...req.body},
+    { new: true, runValidators: true }, // add korlam new:true dile update howar porer data return korbe
+
+)
 
     if (!user) {
             return res.status(404).json({ error: "No such user" })

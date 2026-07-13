@@ -18,7 +18,7 @@ const userAuthSchema = new Schema(
 
     Role: {
       type: String,
-      enum: ["patient", "doctor"],
+      enum: ["patient", "doctor", "admin"],
       required: true,
     },
   },
@@ -30,3 +30,4 @@ userAuthSchema.pre("save", async function () {
   this.Password = await bcrypt.hash(this.Password, 10);
 });
 module.exports = mongoose.model("UserAuth", userAuthSchema);
+

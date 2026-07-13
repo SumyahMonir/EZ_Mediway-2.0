@@ -38,7 +38,9 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const dashboardRoute = role === "doctor" ? "/doctor/dashboard" : "/patient/dashboard";
+  const dashboardRoute = role === "doctor" ? "/doctor/dashboard" : role === "admin"
+    ? "/admin/dashboard"
+    :  "/patient/dashboard";
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,8 +51,17 @@ const Profile = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setProfile(res.data);
-        setFormData(res.data);
+        // setProfile(res.data);
+        // setFormData(res.data);
+        const data = res.data;
+
+      setProfile(data);
+
+      setFormData({
+          ...data,
+          qualificationsInput: (data.qualifications || []).join(", "),
+      });
+
       } catch (err) {
         console.log(err);
       }

@@ -58,10 +58,19 @@ const Login = () => {
       localStorage.setItem("email", res.data.Email);
 
       alert("Login successful!");
-      if (role === "doctor") {
+
+      if (res.data.Role === "admin") {
+
+        navigate("/admin/dashboard");
+
+      } else if (res.data.Role === "doctor") {
+
         navigate("/doctor/dashboard");
+
       } else {
+
         navigate("/patient/dashboard");
+
       }
     } catch (err) {
       console.error(err);
@@ -111,6 +120,7 @@ const Login = () => {
                 className={inputClass}
               >
                 <option value="">Select role</option>
+                <option value="admin">Admin</option>
                 <option value="patient">Patient</option>
                 <option value="doctor">Doctor</option>
               </select>

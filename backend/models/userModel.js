@@ -11,26 +11,26 @@ const userSchema = new Schema(
       unique: true,
     },
 
-    Name: {
+    name: {
       type: String,
       required: true,
     },
-    Email: {
-      type: String,
-      required: true,
-    },
-
-    NID: {
+    email: {
       type: String,
       required: true,
     },
 
-    Phone: {
+    nid: {
+      type: String,
+      required: true,
+    },
+
+    phone: {
       type: Number,
       required: true,
     },
 
-    Weight: {
+    weight: {
       type: Number,
       required: true,
     },
@@ -44,7 +44,7 @@ const userSchema = new Schema(
       },
     },
 
-    Blood_Grp: {
+    bloodGroup: {
       type: String,
       required: true,
       enum: {

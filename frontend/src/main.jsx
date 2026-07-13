@@ -23,6 +23,7 @@ import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -66,6 +67,10 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+      <Route 
+ path="admin/dashboard"
+ element={<AdminDashboard/>}
+/>
 
       <Route
         path="profile"

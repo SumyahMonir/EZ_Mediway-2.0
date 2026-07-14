@@ -17,6 +17,12 @@ const doctorSchema = new Schema(
       trim: true,
     },
 
+    slug: {
+      type: String,
+      unique: true,
+      index: true,
+    },
+
     email: {
       type: String,
       required: true,
@@ -107,11 +113,17 @@ const doctorSchema = new Schema(
       default: 0,
     },
 
-    isVerified: {
-      type: Boolean,
-      default: false,
+    // add to doctorSchema, near isVerified
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
     },
 
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
     isAvailable: {
       type: Boolean,
       default: true,
@@ -121,5 +133,33 @@ const doctorSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Auto-generate slug from name before saving — prefixed with "dr" for doctors
+doctorSchema.pre("save", async function (next) {
+  if (!this.isModified("name") && this.slug) {
+    return next();
+  }
+
+  const baseName = this.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  const baseSlug = `dr-${baseName}`;
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  const DoctorModel = this.constructor;
+  while (await DoctorModel.findOne({ slug, _id: { $ne: this._id } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  this.slug = slug;
+  next();
+});
 
 module.exports = mongoose.model("Doctor", doctorSchema);

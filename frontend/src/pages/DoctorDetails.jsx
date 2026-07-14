@@ -1,58 +1,50 @@
-import React from "react";
-import { Link, useParams } from "react-router-dom";
-
-import doc1 from "../assets/images/doc1.png";
-import doc2 from "../assets/images/doc2.png";
-import doc3 from "../assets/images/doc3.png";
-
-const doctors = [
-  {
-    id: 1,
-    image: doc1,
-    name: "Dr. Forhad Ali",
-    specialization: "General Physician",
-    experience: "8 Years",
-    hospital: "Apollo Hospital",
-    fee: 800,
-    days: "Sunday -Thursday",
-    time: "10:00 AM - 4:00 PM",
-    description:
-      "Experienced General Physician dedicated to providing quality healthcare.",
-  },
-  {
-    id: 2,
-    image: doc2,
-    name: "Dr. Alia Rahman",
-    specialization: "Cardiologist",
-    experience: "10 Years",
-    hospital: "Square Hospital",
-    fee: 1200,
-    days: "Saturday - Wednesday",
-    time: "9:00 AM - 3:00 PM",
-    description:
-      "Experienced Cardiologist specializing in heart disease diagnosis and treatment.",
-  },
-  {
-    id: 3,
-    image: doc3,
-    name: "Dr. Fatima Noor",
-    specialization: "Pediatrician",
-    experience: "6 Years",
-    hospital: "Evercare Hospital",
-    fee: 700,
-    days: "Sunday - Thursday",
-    time: "11:00 AM - 5:00 PM",
-    description:
-      "Dedicated Pediatrician providing complete child healthcare services.",
-  },
-];
+import React, { useEffect, useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import API from "../api";
 
 const DoctorDetails = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
+  const navigate = useNavigate();
 
-  const doctor = doctors.find((doc) => doc.id === Number(id));
+  const [doctor, setDoctor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
 
-  if (!doctor) {
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching doctor details for slug:", slug);
+        const res = await API.get(`/doctors/slug/${slug}`);
+        setDoctor(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Doctor not found.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctor();
+  }, [slug]);
+
+  const fallbackAvatar = doctor
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=0B3D1E&color=ffffff&size=256`
+    : "";
+
+  const handleBookAppointment = () => {
+    // pre-select this doctor on the booking page
+    navigate(`/book-appointment?doctorId=${doctor._id}`);
+  };
+
+  if (loading) {
+    return (
+      <p className="text-center text-[#3A4D3E] mt-20">Loading doctor details...</p>
+    );
+  }
+
+  if (error || !doctor) {
     return (
       <h2 className="text-center text-2xl mt-20 text-red-500">
         Doctor Not Found
@@ -72,7 +64,11 @@ const DoctorDetails = () => {
 
           <div className="flex justify-center">
             <img
-              src={doctor.image}
+              src={doctor.profileImage || fallbackAvatar}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = fallbackAvatar;
+              }}
               alt={doctor.name}
               className="w-64 h-64 rounded-xl object-cover shadow-md"
             />
@@ -81,60 +77,59 @@ const DoctorDetails = () => {
           <div className="space-y-3">
 
             <h3 className="text-3xl font-bold text-[#0F2A18]">
-              {doctor.name}
+              Dr. {doctor.name}
             </h3>
 
             <p className="text-[#0B3D1E] font-semibold">
+              {doctor.professionalTitle}
+            </p>
+
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">Specialization:</span>{" "}
               {doctor.specialization}
             </p>
 
             <p className="text-[#3A4D3E]">
-              <span className="font-semibold text-[#0F2A18]">
-                Experience:
-              </span>{" "}
-              {doctor.experience}
+              <span className="font-semibold text-[#0F2A18]">Qualifications:</span>{" "}
+              {(doctor.qualifications || []).join(", ")}
             </p>
 
             <p className="text-[#3A4D3E]">
-              <span className="font-semibold text-[#0F2A18]">
-                Hospital:
-              </span>{" "}
+              <span className="font-semibold text-[#0F2A18]">Experience:</span>{" "}
+              {doctor.experience} Years
+            </p>
+
+            <p className="text-[#3A4D3E]">
+              <span className="font-semibold text-[#0F2A18]">Hospital:</span>{" "}
               {doctor.hospital}
             </p>
 
             <p className="text-[#3A4D3E]">
-              <span className="font-semibold text-[#0F2A18]">
-                Consultation Fee:
-              </span>{" "}
-              BDT {doctor.fee}
+              <span className="font-semibold text-[#0F2A18]">Consultation Fee:</span>{" "}
+              BDT {doctor.consultationFee}
             </p>
 
-            <p className="text-[#3A4D3E]">
-              <span className="font-semibold text-[#0F2A18]">
-                Available Days:
-              </span>{" "}
-              {doctor.days}
-            </p>
+            {doctor.languages?.length > 0 && (
+              <p className="text-[#3A4D3E]">
+                <span className="font-semibold text-[#0F2A18]">Languages:</span>{" "}
+                {doctor.languages.join(", ")}
+              </p>
+            )}
 
-            <p className="text-[#3A4D3E]">
-              <span className="font-semibold text-[#0F2A18]">
-                Available Time:
-              </span>{" "}
-              {doctor.time}
-            </p>
-
-            <p className="text-[#3A4D3E] pt-2 leading-relaxed">
-              {doctor.description}
-            </p>
+            {doctor.description && (
+              <p className="text-[#3A4D3E] pt-2 leading-relaxed">
+                {doctor.description}
+              </p>
+            )}
 
             <div className="pt-6 flex gap-4">
 
-              <Link
-                to="/book-appointment"
+              <button
+                onClick={handleBookAppointment}
                 className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300"
               >
                 Book Appointment
-              </Link>
+              </button>
 
               <Link
                 to="/doctors"

@@ -13,6 +13,10 @@ const PORT = process.env.PORT || 3000
 const authRoutes = require('./routes/authRoutes')
 const doctorRoutes = require('./routes/doctorRoute')
 const userRoutes = require('./routes/userRoute')
+const adminRoutes = require('./routes/adminRoute')   
+const appointmentRoutes = require('./routes/appointmentRoute')
+
+
 
 const logger = require('./middleware/logger')
 const errorHandler = require('./middleware/error')
@@ -33,6 +37,8 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/doctors', doctorRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/admin', adminRoutes) 
+app.use('/api/appointments', appointmentRoutes)
 
 // 404 handler — after routes, catches anything unmatched
 app.use((req, res) => {

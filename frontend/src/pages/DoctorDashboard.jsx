@@ -3,42 +3,148 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../api";
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// Compares calendar dates using UTC date parts on both sides, so the
+// result never depends on the browser's local timezone. Using
+// .toDateString() here previously converted the stored UTC date into
+// local time before comparing, which could silently shift a date
+// across the day boundary and make "today's" appointments vanish.
+const isoDate = (d) => new Date(d).toISOString().slice(0, 10);
+const sameDay = (dateStr, reference) => isoDate(dateStr) === isoDate(reference);
+
+// Backend status enum: "pending", "confirmed", "not_available",
+// "completed", "Cancelled" (only Cancelled is capitalized).
+const statusStyles = {
+  pending: "bg-yellow-100 text-yellow-700",
+  confirmed: "bg-green-100 text-green-700",
+  completed: "bg-blue-100 text-blue-700",
+  not_available: "bg-gray-200 text-gray-700",
+  Cancelled: "bg-red-100 text-red-700",
+};
+
+const formatStatus = (status) => {
+  if (!status) return "Pending";
+  if (status === "not_available") return "Not Available";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+// TODO: Appointment model doesn't have a visit-type field yet
+// (consultation / report checkup / follow-up). Hardcoded placeholder
+// until that field exists on the backend.
+const VISIT_TYPE_PLACEHOLDER = "Consultation";
 
 const DoctorDashboard = () => {
+  const [profile, setProfile] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const [profile, setProfile] = useState(null);
+  const token = localStorage.getItem("token");
 
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const res = await API.get("/doctors/me");
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
 
-      console.log(res.data); // 👈 এখানে বসবে
+        const [profileRes, appointmentsRes] = await Promise.all([
+          API.get("/doctors/me"),
+          API.get("/appointments/doctor/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-      setProfile(res.data);
+        setProfile(profileRes.data);
+        setAppointments(appointmentsRes.data || []);
+      } catch (error) {
+        console.log(error);
+        setError("Failed to load dashboard data.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    } catch (error) {
-      console.log(error);
+    fetchDashboardData();
+  }, [token]);
+
+  const today = new Date();
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  // Includes ALL statuses for today, including Cancelled — intentionally
+  // not filtered, so cancelled appointments still show (with the red badge).
+  const todaysAppointments = appointments.filter((a) => sameDay(a.date, today));
+  const yesterdaysAppointments = appointments.filter((a) =>
+    sameDay(a.date, yesterday)
+  );
+
+  const completedTodayCount = todaysAppointments.filter(
+    (a) => a.status === "completed"
+  ).length;
+
+  const appointmentsDelta = todaysAppointments.length - yesterdaysAppointments.length;
+  const deltaText =
+    appointmentsDelta > 0
+      ? `+${appointmentsDelta} from yesterday`
+      : appointmentsDelta < 0
+      ? `${appointmentsDelta} from yesterday`
+      : "Same as yesterday";
+
+  // "Upcoming Patients" — distinct patients with an active appointment
+  // in the next 3 days (not counting today, not cancelled). Compared
+  // as UTC date strings for the same reason as sameDay() above.
+  const upcomingStartDate = new Date(today);
+  upcomingStartDate.setDate(today.getDate() + 1);
+  const upcomingEndDate = new Date(today);
+  upcomingEndDate.setDate(today.getDate() + 3);
+
+  const upcomingStart = isoDate(upcomingStartDate);
+  const upcomingEnd = isoDate(upcomingEndDate);
+
+  const upcomingAppointments = appointments.filter((a) => {
+    const d = isoDate(a.date);
+    return d >= upcomingStart && d <= upcomingEnd && a.status !== "Cancelled";
+  });
+  const upcomingPatientIds = new Set(
+    upcomingAppointments.map((a) => a.patientId?._id || a.patientId)
+  );
+
+  // Recent Patients — most recent distinct patients across all appointments.
+  const sortedByDateDesc = [...appointments].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+  const recentPatients = [];
+  const seenPatientIds = new Set();
+  for (const appt of sortedByDateDesc) {
+    const pid = appt.patientId?._id || appt.patientId;
+    if (pid && !seenPatientIds.has(pid)) {
+      seenPatientIds.add(pid);
+      recentPatients.push(appt);
     }
-  };
-
-  fetchProfile();
-}, []);
-
+    if (recentPatients.length >= 4) break;
+  }
 
   return (
-    // <div className="flex bg-[#F7FAF7] min-h-screen">
     <div className="flex bg-[#F7FAF7] pt-24 pb-10">
-
       {/* Main Content */}
       <div className="flex-1 p-8">
+        {error && <p className="text-red-500 mb-4">{error}</p>}
 
         {/* Welcome */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-
           <div>
             <h1 className="text-4xl font-bold text-[#0F2A18]">
-              Welcome, Dr. {profile?.name} 
+              Welcome, Dr. {profile?.name || "..."}
             </h1>
 
             <p className="text-[#4A5C4F] mt-2">
@@ -47,120 +153,93 @@ useEffect(() => {
           </div>
 
           <div className="mt-5 md:mt-0 bg-white border border-[#D8E5DA] rounded-xl px-6 py-4 shadow">
-            <p className="text-sm text-gray-500">
-              Today's Date
-            </p>
+            <p className="text-sm text-gray-500">Today's Date</p>
 
             <h3 className="text-xl font-bold text-[#0B3D1E]">
-              02 July 2026
+              {today.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}
             </h3>
           </div>
-
         </div>
 
         {/* Statistics */}
-
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-
-          {/* Card */}
-
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
-            <p className="text-gray-500">
-              Today's Appointments
-            </p>
+            <p className="text-gray-500">Today's Appointments</p>
 
             <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">
-              08
+              {loading ? "..." : todaysAppointments.length}
             </h2>
 
-            <p className="text-sm text-green-600 mt-3">
-              +2 from yesterday
+            <p
+              className={`text-sm mt-3 ${
+                appointmentsDelta > 0
+                  ? "text-green-600"
+                  : appointmentsDelta < 0
+                  ? "text-red-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {loading ? "" : deltaText}
             </p>
-
           </div>
 
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
-            <p className="text-gray-500">
-              Upcoming Patients
-            </p>
+            <p className="text-gray-500">Upcoming Patients</p>
 
             <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">
-              05
+              {loading ? "..." : upcomingPatientIds.size}
             </h2>
 
-            <p className="text-sm text-blue-600 mt-3">
-              Next 3 days
-            </p>
+            <p className="text-sm text-blue-600 mt-3">Next 3 days</p>
+          </div>
 
+          {/* Available Slots — no slots/schedule model on the backend yet,
+              kept hardcoded per your instruction. */}
+          <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
+            <p className="text-gray-500">Available Slots</p>
+
+            <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">12</h2>
+
+            <p className="text-sm text-yellow-700 mt-3">Ready to book</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
-            <p className="text-gray-500">
-              Available Slots
-            </p>
+            <p className="text-gray-500">Completed Today</p>
 
             <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">
-              12
+              {loading ? "..." : completedTodayCount}
             </h2>
 
-            <p className="text-sm text-yellow-700 mt-3">
-              Ready to book
-            </p>
-
+            <p className="text-sm text-green-600 mt-3">Successfully completed</p>
           </div>
-
-          <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
-            <p className="text-gray-500">
-              Completed Today
-            </p>
-
-            <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">
-              03
-            </h2>
-
-            <p className="text-sm text-green-600 mt-3">
-              Successfully completed
-            </p>
-
-          </div>
-
         </div>
 
         {/* Quick Actions */}
-
         <div className="mt-10">
-
-          <h2 className="text-2xl font-bold text-[#0F2A18] mb-5">
-            Quick Actions
-          </h2>
+          <h2 className="text-2xl font-bold text-[#0F2A18] mb-5">Quick Actions</h2>
 
           <div className="grid md:grid-cols-3 gap-5">
-
             <Link
               to="#"
               className="bg-[#0B3D1E] text-white rounded-xl p-6 hover:bg-[#082B15] transition"
             >
-              <h3 className="text-xl font-semibold">
-                Manage Availability
-              </h3>
-
+              <h3 className="text-xl font-semibold">Manage Availability</h3>
               <p className="text-sm mt-2 text-[#D8E5DA]">
                 Update your available days and time slots.
               </p>
             </Link>
 
             <Link
-              to="#"
+              to="/doctor/appointments"
               className="bg-white border border-[#D8E5DA] rounded-xl p-6 hover:bg-[#EEF5EF] transition"
             >
               <h3 className="text-xl font-semibold text-[#0F2A18]">
                 View Appointments
               </h3>
-
               <p className="text-sm mt-2 text-gray-500">
                 See all upcoming appointments.
               </p>
@@ -173,359 +252,216 @@ useEffect(() => {
               <h3 className="text-xl font-semibold text-[#0F2A18]">
                 My Profile
               </h3>
-
               <p className="text-sm mt-2 text-gray-500">
                 Update your personal information.
               </p>
             </Link>
-
           </div>
-
         </div>
-                {/* Today's Appointments + Availability */}
-        <div className="grid lg:grid-cols-3 gap-8 mt-10">
 
+        {/* Today's Appointments + Availability */}
+        <div className="grid lg:grid-cols-3 gap-8 mt-10">
           {/* Appointment Table */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
             <div className="flex justify-between items-center mb-6">
-
               <h2 className="text-2xl font-bold text-[#0F2A18]">
                 Today's Appointments
               </h2>
 
-              <button className="text-[#0B3D1E] font-medium hover:underline">
+              <Link
+                to="/doctor/appointments"
+                className="text-[#0B3D1E] font-medium hover:underline"
+              >
                 View All
-              </button>
-
+              </Link>
             </div>
 
             <div className="overflow-x-auto">
+              {loading ? (
+                <p className="text-gray-500 py-4">Loading appointments...</p>
+              ) : todaysAppointments.length === 0 ? (
+                <p className="text-gray-500 py-4">
+                  No appointments scheduled for today.
+                </p>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#D8E5DA]">
+                      <th className="text-left py-3 text-[#0F2A18]">Patient</th>
+                      <th className="text-left py-3 text-[#0F2A18]">Date</th>
+                      <th className="text-left py-3 text-[#0F2A18]">Time</th>
+                      <th className="text-left py-3 text-[#0F2A18]">Status</th>
+                      <th className="text-left py-3 text-[#0F2A18]">Action</th>
+                    </tr>
+                  </thead>
 
-              <table className="w-full">
-
-                <thead>
-
-                  <tr className="border-b border-[#D8E5DA]">
-
-                    <th className="text-left py-3 text-[#0F2A18]">
-                      Patient
-                    </th>
-
-                    <th className="text-left py-3 text-[#0F2A18]">
-                      Date
-                    </th>
-
-                    <th className="text-left py-3 text-[#0F2A18]">
-                      Time
-                    </th>
-
-                    <th className="text-left py-3 text-[#0F2A18]">
-                      Status
-                    </th>
-
-                    <th className="text-left py-3 text-[#0F2A18]">
-                      Action
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                <tbody>
-
-                  <tr className="border-b border-[#EEF5EF]">
-
-                    <td className="py-4">John Doe</td>
-
-                    <td>02 Jul</td>
-
-                    <td>10:00 AM</td>
-
-                    <td>
-
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                        Confirmed
-                      </span>
-
-                    </td>
-
-                    <td>
-
-                      <button className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15]">
-                        View
-                      </button>
-
-                    </td>
-
-                  </tr>
-
-                  <tr className="border-b border-[#EEF5EF]">
-
-                    <td className="py-4">Sarah Ahmed</td>
-
-                    <td>02 Jul</td>
-
-                    <td>11:30 AM</td>
-
-                    <td>
-
-                      <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm">
-                        Pending
-                      </span>
-
-                    </td>
-
-                    <td>
-
-                      <button className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15]">
-                        View
-                      </button>
-
-                    </td>
-
-                  </tr>
-
-                  <tr>
-
-                    <td className="py-4">Rakib Hasan</td>
-
-                    <td>02 Jul</td>
-
-                    <td>02:00 PM</td>
-
-                    <td>
-
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                        Confirmed
-                      </span>
-
-                    </td>
-
-                    <td>
-
-                      <button className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15]">
-                        View
-                      </button>
-
-                    </td>
-
-                  </tr>
-
-                </tbody>
-
-              </table>
-
+                  <tbody>
+                    {todaysAppointments.map((appt) => (
+                      <tr
+                        key={appt._id || appt.id}
+                        className="border-b border-[#EEF5EF]"
+                      >
+                        <td className="py-4">
+                          {appt.patientId?.name || "Unknown"}
+                        </td>
+                        <td>{formatDate(appt.date)}</td>
+                        <td>{appt.timeSlot}</td>
+                        <td>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm ${
+                              statusStyles[appt.status] ||
+                              "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {formatStatus(appt.status)}
+                          </span>
+                        </td>
+                        <td>
+                          {/* Placeholder for future prescription/history
+                              view — not functional yet. */}
+                          <button className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15]">
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-
           </div>
 
-          {/* Availability */}
-
+          {/* Availability — no schedule/slots model on the backend yet,
+              kept fully hardcoded per your instruction. */}
           <div className="space-y-6">
-
             <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
               <h2 className="text-2xl font-bold text-[#0F2A18] mb-5">
                 Availability
               </h2>
 
               <div className="space-y-3">
-
                 <div className="flex justify-between">
-
                   <span>Working Days</span>
-
-                  <span className="font-semibold">
-                    Sun - Thu
-                  </span>
-
+                  <span className="font-semibold">Sun - Thu</span>
                 </div>
 
                 <div className="flex justify-between">
-
                   <span>Working Time</span>
-
-                  <span className="font-semibold">
-                    09 AM - 05 PM
-                  </span>
-
+                  <span className="font-semibold">09 AM - 05 PM</span>
                 </div>
 
                 <div className="flex justify-between">
-
                   <span>Status</span>
-
-                  <span className="text-green-600 font-semibold">
-                    Available
-                  </span>
-
+                  <span className="text-green-600 font-semibold">Available</span>
                 </div>
-
               </div>
 
               <button className="w-full mt-6 bg-[#0B3D1E] text-white py-3 rounded-xl hover:bg-[#082B15] transition">
                 Edit Availability
               </button>
-
             </div>
 
             <div className="bg-[#EEF5EF] rounded-2xl border border-[#D8E5DA] p-6">
-
               <h3 className="text-xl font-bold text-[#0F2A18] mb-3">
                 Today's Summary
               </h3>
 
               <p className="text-gray-700 mb-2">
-                ✔ 8 Appointments Scheduled
+                ✔ {loading ? "..." : todaysAppointments.length} Appointments
+                Scheduled
               </p>
 
               <p className="text-gray-700 mb-2">
-                ✔ 3 Completed
+                ✔ {loading ? "..." : completedTodayCount} Completed
               </p>
 
               <p className="text-gray-700">
-                ✔ 5 Remaining
+                ✔{" "}
+                {loading
+                  ? "..."
+                  : todaysAppointments.length - completedTodayCount}{" "}
+                Remaining
               </p>
-
             </div>
-
           </div>
-
         </div>
-                {/* Recent Patients & Notifications */}
-        <div className="grid lg:grid-cols-3 gap-8 mt-10">
 
+        {/* Recent Patients & Notifications */}
+        <div className="grid lg:grid-cols-3 gap-8 mt-10">
           {/* Recent Patients */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
             <div className="flex justify-between items-center mb-6">
-
               <h2 className="text-2xl font-bold text-[#0F2A18]">
                 Recent Patients
               </h2>
 
+              {/* Not wired up yet — no patient history/reports route exists. */}
               <button className="text-[#0B3D1E] font-medium hover:underline">
                 View All
               </button>
-
             </div>
 
-            <div className="grid md:grid-cols-2 gap-5">
+            {loading ? (
+              <p className="text-gray-500">Loading recent patients...</p>
+            ) : recentPatients.length === 0 ? (
+              <p className="text-gray-500">No patient visits yet.</p>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-5">
+                {recentPatients.map((appt) => (
+                  <div
+                    key={appt._id || appt.id}
+                    className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5"
+                  >
+                    <h3 className="text-lg font-bold text-[#0F2A18]">
+                      {appt.patientId?.name || "Unknown"}
+                    </h3>
 
-              <div className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5">
+                    {/* TODO: swap for real visit-type field once it exists
+                        on the Appointment model. */}
+                    <p className="text-[#3A4D3E] mt-2">
+                      {VISIT_TYPE_PLACEHOLDER}
+                    </p>
 
-                <h3 className="text-lg font-bold text-[#0F2A18]">
-                  John Doe
-                </h3>
-
-                <p className="text-[#3A4D3E] mt-2">
-                  General Checkup
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Last Visit: 20 June 2026
-                </p>
-
+                    <p className="text-sm text-gray-500 mt-1">
+                      Last Visit: {formatDate(appt.date)}
+                    </p>
+                  </div>
+                ))}
               </div>
-
-              <div className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5">
-
-                <h3 className="text-lg font-bold text-[#0F2A18]">
-                  Sarah Ahmed
-                </h3>
-
-                <p className="text-[#3A4D3E] mt-2">
-                  Heart Consultation
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Last Visit: 18 June 2026
-                </p>
-
-              </div>
-
-              <div className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5">
-
-                <h3 className="text-lg font-bold text-[#0F2A18]">
-                  Rakib Hasan
-                </h3>
-
-                <p className="text-[#3A4D3E] mt-2">
-                  Follow-up Visit
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Last Visit: 15 June 2026
-                </p>
-
-              </div>
-
-              <div className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5">
-
-                <h3 className="text-lg font-bold text-[#0F2A18]">
-                  Fatema Begum
-                </h3>
-
-                <p className="text-[#3A4D3E] mt-2">
-                  Diabetes Consultation
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Last Visit: 12 June 2026
-                </p>
-
-              </div>
-
-            </div>
-
+            )}
           </div>
 
-          {/* Notifications */}
+          {/* Notifications — no notifications model/endpoint yet, kept
+              hardcoded per your instruction. */}
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
-
             <h2 className="text-2xl font-bold text-[#0F2A18] mb-5">
               Notifications
             </h2>
 
             <div className="space-y-4">
-
               <div className="border-l-4 border-green-600 bg-[#EEF5EF] p-4 rounded-lg">
-                <p className="font-medium text-[#0F2A18]">
-                  New Appointment
-                </p>
-
+                <p className="font-medium text-[#0F2A18]">New Appointment</p>
                 <p className="text-sm text-gray-600">
                   John Doe booked an appointment.
                 </p>
               </div>
 
               <div className="border-l-4 border-yellow-500 bg-yellow-50 p-4 rounded-lg">
-                <p className="font-medium text-[#0F2A18]">
-                  Schedule Reminder
-                </p>
-
+                <p className="font-medium text-[#0F2A18]">Schedule Reminder</p>
                 <p className="text-sm text-gray-600">
                   Update your availability for next week.
                 </p>
               </div>
 
               <div className="border-l-4 border-blue-600 bg-blue-50 p-4 rounded-lg">
-                <p className="font-medium text-[#0F2A18]">
-                  Patient Message
-                </p>
-
+                <p className="font-medium text-[#0F2A18]">Patient Message</p>
                 <p className="text-sm text-gray-600">
                   Sarah Ahmed sent you a message.
                 </p>
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
     </div>
   );

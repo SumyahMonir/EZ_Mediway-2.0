@@ -24,6 +24,9 @@ import DoctorDashboard from "./pages/DoctorDashboard";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
+import DoctorAppointments from "./pages/DoctorAppointments"; // adjust path
+
+
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -34,11 +37,12 @@ const router = createBrowserRouter(
       <Route path='about' element={<About/>} />
       <Route path='doctors' element={<Doctors/>} />
 
-      <Route path="doctors/:id" element={<DoctorDetails />} />
+      <Route path="doctors/:slug" element={<DoctorDetails />} />
 
       <Route path='contact' element={<Contact/>} />
       <Route path='CreateAccount' element={<CreateAccount/>} />
       <Route path='login' element={<Login/>} />
+      <Route path="/doctor/appointments" element={<DoctorAppointments />} />
 
       {/* Protected routes — require a logged-in user */}
       <Route

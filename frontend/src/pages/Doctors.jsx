@@ -1,11 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DoctorCard from "../components/DoctorCard";
-
-import doc1 from "../assets/images/doc1.png";
-import doc2 from "../assets/images/doc2.png";
-import doc3 from "../assets/images/doc3.png";
+import API from "../api";
 
 const Doctors = () => {
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await API.get("/doctors");
+        console.log("doctors from API:", res.data); // ← add this
+        setDoctors(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load doctors.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
+
   return (
     <section className="py-16 bg-[#F7FAF7]">
       <div className="container mx-auto px-6 md:px-12 lg:px-24">
@@ -13,36 +31,34 @@ const Doctors = () => {
           Our Doctors
         </h2>
 
+        {loading && (
+          <p className="text-center text-[#3A4D3E] mt-10">Loading doctors...</p>
+        )}
+
+        {error && (
+          <p className="text-center text-red-500 mt-10">{error}</p>
+        )}
+
+        {!loading && !error && doctors.length === 0 && (
+          <p className="text-center text-[#3A4D3E] mt-10">No doctors available right now.</p>
+        )}
+
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <DoctorCard
-            id={1}
-            image={doc1}
-            name="Dr. Forhad Ali"
-            specialization="General Physician"
-            experience="8 Years Experience"
-            hospital="Apollo Hospital"
-            fee={800}
-          />
-
-          <DoctorCard
-            id={2}
-            image={doc2}
-            name="Dr. Alia Rahman"
-            specialization="Cardiologist"
-            experience="10 Years Experience"
-            hospital="Square Hospital"
-            fee={1200}
-          />
-
-          <DoctorCard
-            id={3}
-            image={doc3}
-            name="Dr. Fatima Noor"
-            specialization="Pediatrician"
-            experience="6 Years Experience"
-            hospital="Evercare Hospital"
-            fee={700}
-          />
+          {doctors.map((doc) => (
+            <DoctorCard
+              key={doc._id}
+              slug={doc.slug}
+              image={
+                doc.profileImage ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=0B3D1E&color=ffffff`
+              }
+              name={`Dr. ${doc.name}`}
+              specialization={doc.specialization}
+              experience={`${doc.experience} Years Experience`}
+              hospital={doc.hospital}
+              fee={doc.consultationFee}
+            />
+          ))}
         </div>
       </div>
     </section>

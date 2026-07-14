@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const DoctorCard = ({
-  id,
+  slug,
   image,
   name,
   specialization,
@@ -40,7 +40,7 @@ const DoctorCard = ({
 
       <div className="mt-6 text-center">
         <Link
-          to={`/doctors/${id}`}
+          to={`/doctors/${slug}`}
           className="inline-block bg-[#0B3D1E] text-white px-5 py-2 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300"
         >
           View Details

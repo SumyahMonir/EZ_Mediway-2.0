@@ -15,6 +15,13 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+
+    slug: {
+      type: String,
+      unique: true,
+      index: true,
+    },
+
     email: {
       type: String,
       required: true,
@@ -39,8 +46,8 @@ const userSchema = new Schema(
       type: String,
       required: true,
       enum: {
-        values: ["Male", "Female", "Other"],
-        message: "Gender must be Male, Female, or Other.",
+        values: ["male", "female", "others"],
+        message: "Gender must be male, female, or others.",
       },
     },
 
@@ -52,8 +59,39 @@ const userSchema = new Schema(
         message: "Invalid blood group.",
       },
     },
+
+    profileImage: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );
+
+// Auto-generate slug from name before saving — same pattern as Doctor
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("name") && this.slug) {
+    return next();
+  }
+
+  const baseSlug = this.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  const UserModel = this.constructor;
+  while (await UserModel.findOne({ slug, _id: { $ne: this._id } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  this.slug = slug;
+  next();
+});
 
 module.exports = mongoose.model("Users", userSchema);

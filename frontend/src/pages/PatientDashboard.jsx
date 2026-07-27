@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../api";
 
 const formatDate = (dateStr) => {
@@ -38,7 +38,20 @@ const formatStatus = (status) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
+// Is this appointment's date today (local calendar day)?
+const isToday = (dateStr) => {
+  if (!dateStr) return false;
+  const apptDate = new Date(dateStr);
+  const today = new Date();
+  return (
+    apptDate.getFullYear() === today.getFullYear() &&
+    apptDate.getMonth() === today.getMonth() &&
+    apptDate.getDate() === today.getDate()
+  );
+};
+
 const PatientDashboard = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]); // fallback lookup if doctorId isn't populated
@@ -146,6 +159,17 @@ const PatientDashboard = () => {
     }
   };
 
+  // Navigates into the per-slot waiting room for this appointment.
+  const handleJoinWaitingRoom = (appt) => {
+    const info = getDoctorInfo(appt);
+    if (!info.id) return;
+
+    const isoDate = new Date(appt.date).toISOString().split("T")[0];
+    navigate(
+      `/patient/waiting-room/${info.id}/${isoDate}/${encodeURIComponent(appt.timeSlot)}`
+    );
+  };
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -211,6 +235,17 @@ const PatientDashboard = () => {
                       ? ` • ${upcomingAppointment.timeSlot}`
                       : ""}
                   </p>
+
+                  {upcomingAppointment.status === "confirmed" &&
+                    isToday(upcomingAppointment.date) && (
+                      <button
+                        type="button"
+                        onClick={() => handleJoinWaitingRoom(upcomingAppointment)}
+                        className="mt-3 mr-2 text-sm bg-[#0B3D1E] text-white rounded-lg px-3 py-1.5 hover:bg-[#082B15] transition-all duration-200"
+                      >
+                        Join Waiting Room
+                      </button>
+                    )}
 
                   {upcomingAppointment.status !== "completed" && (
                     <button
@@ -302,19 +337,30 @@ const PatientDashboard = () => {
                           {formatStatus(appt.status)}
                         </td>
                         <td>
-                          {appt.status !== "completed" &&
-                            appt.status !== "Cancelled" && (
+                          <div className="flex gap-2 justify-end">
+                            {appt.status === "confirmed" && isToday(appt.date) && (
                               <button
                                 type="button"
-                                onClick={() => handleCancel(apptId)}
-                                disabled={cancellingId === apptId}
-                                className="text-sm text-red-600 border border-red-200 rounded-lg px-3 py-1 hover:bg-red-50 transition-all duration-200 disabled:opacity-60"
+                                onClick={() => handleJoinWaitingRoom(appt)}
+                                className="text-sm bg-[#0B3D1E] text-white rounded-lg px-3 py-1 hover:bg-[#082B15] transition-all duration-200"
                               >
-                                {cancellingId === apptId
-                                  ? "Cancelling..."
-                                  : "Cancel"}
+                                Join Waiting Room
                               </button>
                             )}
+                            {appt.status !== "completed" &&
+                              appt.status !== "Cancelled" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancel(apptId)}
+                                  disabled={cancellingId === apptId}
+                                  className="text-sm text-red-600 border border-red-200 rounded-lg px-3 py-1 hover:bg-red-50 transition-all duration-200 disabled:opacity-60"
+                                >
+                                  {cancellingId === apptId
+                                    ? "Cancelling..."
+                                    : "Cancel"}
+                                </button>
+                              )}
+                          </div>
                         </td>
                       </tr>
                     );

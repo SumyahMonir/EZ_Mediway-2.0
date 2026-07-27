@@ -6,6 +6,8 @@ dns.setServers(['1.1.1.1'])
 const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
+const http = require('http')
+const { Server } = require('socket.io')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -13,13 +15,14 @@ const PORT = process.env.PORT || 3000
 const authRoutes = require('./routes/authRoutes')
 const doctorRoutes = require('./routes/doctorRoute')
 const userRoutes = require('./routes/userRoute')
-const adminRoutes = require('./routes/adminRoute')   
+const adminRoutes = require('./routes/adminRoute')
 const appointmentRoutes = require('./routes/appointmentRoute')
-
-
+const waitingRoomRoutes = require('./routes/waitingroomRoute')
 
 const logger = require('./middleware/logger')
 const errorHandler = require('./middleware/error')
+
+const { initWaitingRoomSocket } = require('./sockets/waitingroomSocket')
 
 // CORS must come after app is created, before routes
 app.use(cors({
@@ -37,8 +40,9 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/doctors', doctorRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api/admin', adminRoutes) 
+app.use('/api/admin', adminRoutes)
 app.use('/api/appointments', appointmentRoutes)
+app.use('/api/waiting-room', waitingRoomRoutes)
 
 // 404 handler — after routes, catches anything unmatched
 app.use((req, res) => {
@@ -48,8 +52,20 @@ app.use((req, res) => {
 // Error handler — always last
 app.use(errorHandler)
 
+// Wrap Express in a plain http server so Socket.IO can share the same port
+const httpServer = http.createServer(app)
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+})
+
+initWaitingRoomSocket(io)
+
 mongoose.connect(process.env.MONGO_URI).then(() => {
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
   })
 }).catch((error) => { console.log(error) })

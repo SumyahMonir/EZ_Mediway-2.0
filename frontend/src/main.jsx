@@ -25,6 +25,8 @@ import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorAppointments from "./pages/DoctorAppointments"; // adjust path
+import DoctorWaitingRoom from "./pages/DoctorWaitingRoom";
+import PatientWaitingRoom from "./pages/PatientWaitingRoom";
 
 
 
@@ -62,7 +64,23 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-
+       <Route
+        path="doctor/waiting-room/:doctorId/:date/:timeSlot"
+        element={
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorWaitingRoom />
+          </ProtectedRoute>
+        }
+      />
+ 
+      <Route
+        path="patient/waiting-room/:doctorId/:date/:timeSlot"
+        element={
+          <ProtectedRoute allowedRole="patient">
+            <PatientWaitingRoom />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="doctor/dashboard"
         element={

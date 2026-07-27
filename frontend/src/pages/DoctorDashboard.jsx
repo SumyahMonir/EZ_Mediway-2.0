@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../api";
 
@@ -20,7 +20,21 @@ const formatDate = (dateStr) => {
 // local time before comparing, which could silently shift a date
 // across the day boundary and make "today's" appointments vanish.
 const isoDate = (d) => new Date(d).toISOString().slice(0, 10);
-const sameDay = (dateStr, reference) => isoDate(dateStr) === isoDate(reference);
+
+// For "today"/"yesterday" reference points specifically — these must use the
+// browser's LOCAL calendar date, not isoDate()'s UTC conversion. Appointment
+// dates are stored as UTC midnight matching the calendar day the patient
+// picked, but "right now" converted via toISOString() can land on the wrong
+// calendar day during early-morning hours in any UTC+ timezone (e.g. between
+// local midnight and 6 AM in Bangladesh, UTC time is still "yesterday").
+const localIsoDate = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const sameDay = (dateStr, referenceNow) => isoDate(dateStr) === localIsoDate(referenceNow);
 
 // Backend status enum: "pending", "confirmed", "not_available",
 // "completed", "Cancelled" (only Cancelled is capitalized).
@@ -44,6 +58,7 @@ const formatStatus = (status) => {
 const VISIT_TYPE_PLACEHOLDER = "Consultation";
 
 const DoctorDashboard = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,8 +123,8 @@ const DoctorDashboard = () => {
   const upcomingEndDate = new Date(today);
   upcomingEndDate.setDate(today.getDate() + 3);
 
-  const upcomingStart = isoDate(upcomingStartDate);
-  const upcomingEnd = isoDate(upcomingEndDate);
+  const upcomingStart = localIsoDate(upcomingStartDate);
+  const upcomingEnd = localIsoDate(upcomingEndDate);
 
   const upcomingAppointments = appointments.filter((a) => {
     const d = isoDate(a.date);
@@ -133,6 +148,16 @@ const DoctorDashboard = () => {
     }
     if (recentPatients.length >= 4) break;
   }
+
+  // Opens the per-slot waiting room for a confirmed appointment.
+  // profile._id is this doctor's own Doctor document id (from /doctors/me).
+  const handleOpenWaitingRoom = (appt) => {
+    if (!profile?._id) return;
+    const date = isoDate(appt.date);
+    navigate(
+      `/doctor/waiting-room/${profile._id}/${date}/${encodeURIComponent(appt.timeSlot)}`
+    );
+  };
 
   return (
     <div className="flex bg-[#F7FAF7] pt-24 pb-10">
@@ -317,11 +342,22 @@ const DoctorDashboard = () => {
                           </span>
                         </td>
                         <td>
-                          {/* Placeholder for future prescription/history
-                              view — not functional yet. */}
-                          <button className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15]">
-                            View
-                          </button>
+                          <div className="flex gap-2">
+                            {appt.status === "confirmed" && (
+                              <button
+                                onClick={() => handleOpenWaitingRoom(appt)}
+                                className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] whitespace-nowrap"
+                              >
+                                Open Waiting Room
+                              </button>
+                            )}
+
+                            {/* Placeholder for future prescription/history
+                                view — not functional yet. */}
+                            <button className="border border-[#D8E5DA] text-[#0F2A18] px-4 py-2 rounded-lg hover:bg-[#EEF5EF]">
+                              View
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

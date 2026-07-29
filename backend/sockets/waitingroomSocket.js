@@ -185,6 +185,15 @@ function initWaitingRoomSocket(io) {
       nsp.to(socket.roomId).emit("waiting-room:state", serializeRoom(room));
     });
 
+    // DOCTOR — relays "a prescription was sent" to everyone in the room.
+    // The room only has this doctor + whichever patients are connected, so
+    // broadcasting is fine — each patient's client filters for their own
+    // patientId before showing anything.
+    socket.on("waiting-room:prescription-sent", ({ patientId, pdfUrl }) => {
+      if (!socket.roomId || !socket.isDoctor) return;
+      nsp.to(socket.roomId).emit("waiting-room:prescription-sent", { patientId, pdfUrl });
+    });
+
     // DOCTOR — finished with the current patient, advance the queue
     socket.on("waiting-room:complete", async () => {
       await advanceQueue(nsp, socket, "completed");

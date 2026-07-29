@@ -12,6 +12,7 @@ const PatientWaitingRoom = () => {
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [prescriptionUrl, setPrescriptionUrl] = useState(null);
 
   const socketRef = useRef(null);
   const token = localStorage.getItem("token");
@@ -28,6 +29,7 @@ const PatientWaitingRoom = () => {
         });
         if (cancelled) return;
         setProfile(profileRes.data);
+        const myPatientId = profileRes.data._id;
 
         const socket = createWaitingRoomSocket();
         socketRef.current = socket;
@@ -43,6 +45,12 @@ const PatientWaitingRoom = () => {
 
         socket.on("waiting-room:state", (state) => {
           if (!cancelled) setRoom(state);
+        });
+
+        socket.on("waiting-room:prescription-sent", ({ patientId, pdfUrl }) => {
+          if (!cancelled && String(patientId) === String(myPatientId)) {
+            setPrescriptionUrl(pdfUrl);
+          }
         });
 
         socket.on("waiting-room:error", (err) => {
@@ -93,6 +101,22 @@ const PatientWaitingRoom = () => {
         <p className="text-[#3A4D3E] mb-6">{decodedTimeSlot}</p>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
+
+        {prescriptionUrl && (
+          <div className="bg-white rounded-2xl border border-[#0B3D1E] shadow-md p-6 mb-6 text-center">
+            <p className="text-lg font-semibold text-[#0B3D1E] mb-3">
+              Your prescription is ready
+            </p>
+            <a
+              href={prescriptionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-[#0B3D1E] text-white px-6 py-3 rounded-lg hover:bg-[#082B15] transition"
+            >
+              View / Download Prescription
+            </a>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mb-6 text-center">
           {showCall ? (

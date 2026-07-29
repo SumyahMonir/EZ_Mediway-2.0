@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api";
 import { createWaitingRoomSocket } from "../lib/waitingRoomSocket";
+import PrescriptionPanel from "../components/PrescriptionPanel";
 
 const DoctorWaitingRoom = () => {
   const { doctorId, date, timeSlot } = useParams();
@@ -13,6 +14,7 @@ const DoctorWaitingRoom = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [prescribeOpen, setPrescribeOpen] = useState(false);
 
   const socketRef = useRef(null);
   const token = localStorage.getItem("token");
@@ -130,6 +132,9 @@ const DoctorWaitingRoom = () => {
   };
 
   const currentName = room?.currentPatientId ? patientNames[room.currentPatientId] : null;
+  const currentEntry = room?.queue?.find(
+    (q) => String(q.patientId) === String(room?.currentPatientId)
+  );
   const waitingQueue = (room?.queue || []).filter((q) => q.status === "waiting");
 
   if (loading) {
@@ -144,10 +149,18 @@ const DoctorWaitingRoom = () => {
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mb-6">
+        <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-lg font-semibold text-[#0F2A18]">
             {currentName ? `Now Serving: ${currentName}` : "No patient currently in queue"}
           </p>
+          {currentEntry && (
+            <button
+              onClick={() => setPrescribeOpen(true)}
+              className="bg-[#0B3D1E] text-white px-5 py-2.5 rounded-lg hover:bg-[#082B15] transition whitespace-nowrap"
+            >
+              Prescribe Now
+            </button>
+          )}
         </div>
 
         {/* Video call interface — always visible. Shows the doctor's shared
@@ -224,6 +237,18 @@ const DoctorWaitingRoom = () => {
           </button>
         </div>
       </div>
+
+      {prescribeOpen && currentEntry && (
+        <PrescriptionPanel
+          doctorId={doctorId}
+          patientId={currentEntry.patientId}
+          appointmentId={currentEntry.appointmentId}
+          date={date}
+          timeSlot={decodedTimeSlot}
+          socket={socketRef.current}
+          onClose={() => setPrescribeOpen(false)}
+        />
+      )}
     </section>
   );
 };

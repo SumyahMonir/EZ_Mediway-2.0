@@ -18,15 +18,19 @@ const userRoutes = require('./routes/userRoute')
 const adminRoutes = require('./routes/adminRoute')
 const appointmentRoutes = require('./routes/appointmentRoute')
 const waitingRoomRoutes = require('./routes/waitingroomRoute')
+const prescriptionRoutes = require('./routes/prescriptionRoute')
 
 const logger = require('./middleware/logger')
 const errorHandler = require('./middleware/error')
 
-const { initWaitingRoomSocket } = require('./sockets/waitingroomSocket')
+const { initWaitingRoomSocket } = require('./sockets/waitingRoomSocket')
 
 // CORS must come after app is created, before routes
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [
+    "http://localhost:5173",
+    "http://192.168.1.105:5173", // Replace with your PC's IP
+  ],
   credentials: true,
 }))
 
@@ -43,6 +47,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/appointments', appointmentRoutes)
 app.use('/api/waiting-room', waitingRoomRoutes)
+app.use('/api/prescriptions', prescriptionRoutes)
 
 // 404 handler — after routes, catches anything unmatched
 app.use((req, res) => {
@@ -57,7 +62,7 @@ const httpServer = http.createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://192.168.1.105:5173"],
     credentials: true,
   },
 })
@@ -65,7 +70,7 @@ const io = new Server(httpServer, {
 initWaitingRoomSocket(io)
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`)
   })
 }).catch((error) => { console.log(error) })

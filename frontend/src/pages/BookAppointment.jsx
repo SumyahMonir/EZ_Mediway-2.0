@@ -22,6 +22,11 @@ const formatStatus = (status) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
+// Statuses that count as an "active" booking blocking a new one. Cancelled
+// and completed appointments are both done — the patient should be able
+// to book again in either case, not just after cancelling.
+const ACTIVE_STATUSES_BLOCKING_REBOOK = ["pending", "confirmed", "not_available"];
+
 const BookAppointment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -117,9 +122,11 @@ const BookAppointment = () => {
     return <span className={className}>{label}</span>;
   };
 
-  // Check if the patient already has an active (non-cancelled) booking
-  // for this doctor, so the status card shows up on reload instead of
-  // letting them book a duplicate appointment.
+  // Check if the patient already has an ACTIVE (pending/confirmed/
+  // not_available) booking for this doctor, so the status card shows up
+  // on reload instead of letting them book a duplicate appointment.
+  // Cancelled AND completed appointments don't block a new booking —
+  // both are finished, one way or another.
   useEffect(() => {
     if (!token || !doctorId) return;
 
@@ -133,7 +140,8 @@ const BookAppointment = () => {
         const existing = (res.data || [])
           .filter(
             (appt) =>
-              extractDoctorId(appt) === doctorId && appt.status !== "Cancelled"
+              extractDoctorId(appt) === doctorId &&
+              ACTIVE_STATUSES_BLOCKING_REBOOK.includes(appt.status)
           )
           .sort(
             (a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)

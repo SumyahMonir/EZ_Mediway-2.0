@@ -29,7 +29,6 @@ import DoctorWaitingRoom from "./pages/DoctorWaitingRoom";
 import PatientWaitingRoom from "./pages/PatientWaitingRoom";
 
 
-
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App/>}>
@@ -55,6 +54,7 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+      
 
       <Route
         path="patient/dashboard"

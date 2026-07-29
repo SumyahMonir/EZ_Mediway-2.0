@@ -242,17 +242,23 @@ const CreateAccount = () => {
       }
 
       navigate("/login");
-    } catch (err) {
-      console.error(err);
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Something went wrong.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    } 
+    
+    catch (err) {
+  console.error("FULL ERROR:", err.response?.data);
+  console.error(err);
+
+  if (err.response?.data?.error) {
+    setError(err.response.data.error);
+  } else if (err.response?.data?.msg) {
+    setError(err.response.data.msg);
+  } else {
+    setError("Something went wrong.");
+  }
+} finally {
+  setSubmitting(false);
+}
+};
 
   const inputClass =
     "w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]";
@@ -380,9 +386,9 @@ const CreateAccount = () => {
                 required
               >
                 <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Others">Others</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="others">Others</option>
               </select>
             </Field>
 

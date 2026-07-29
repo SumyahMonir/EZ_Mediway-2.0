@@ -83,7 +83,9 @@ const registerUser = async (req, res) => {
       else {
         throw new Error("Invalid role.");
       }
-    } catch (profileErr) {
+    } 
+    
+    catch (profileErr) {
       // rollback auth record if profile creation fails
       await UserAuth.findByIdAndDelete(auth._id);
       throw profileErr;
@@ -92,9 +94,19 @@ const registerUser = async (req, res) => {
     const token = createToken(auth._id, Role);
 
     res.status(201).json({ Email, Role, token, profile });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  } 
+  
+  catch (error) {
+  console.log("========== REGISTER ERROR ==========");
+  console.error(error);
+  console.error(error.stack);
+
+  res.status(400).json({
+    error: error.message,
+  });
+}
+
+
 };
 
 const loginUser = async (req, res) => {

@@ -69,7 +69,7 @@ const userSchema = new Schema(
 );
 
 // Auto-generate slug from name before saving — same pattern as Doctor
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () { //ekhane bracket e next likha chilo
   if (!this.isModified("name") && this.slug) {
     return next();
   }
@@ -91,7 +91,7 @@ userSchema.pre("save", async function (next) {
   }
 
   this.slug = slug;
-  next();
+  // next();
 });
 
 module.exports = mongoose.model("Users", userSchema);

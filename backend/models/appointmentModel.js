@@ -47,6 +47,27 @@ const appointmentSchema = new Schema(
       default: "pending",
     },
 
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
+
+    paymentMethod: {
+      type: String,
+      default: "",
+    },
+
+    bkashPaymentID: {
+      type: String,
+      default: "",
+  },
+
+    transactionId: {
+      type: String,
+      default: "",
+    },
+
     doctorMessage: {
       type: String,
       default: "",
@@ -60,8 +81,12 @@ const appointmentSchema = new Schema(
     },
   },
   { timestamps: true }
+
+  
+
 );
 
 appointmentSchema.statics.TIME_SLOTS = TIME_SLOTS;
 
-module.exports = mongoose.model("Appointment", appointmentSchema);
+// module.exports = mongoose.model("Appointment", appointmentSchema);
+module.exports = mongoose.models.Appointment || mongoose.model("Appointment", appointmentSchema);

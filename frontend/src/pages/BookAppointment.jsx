@@ -25,6 +25,7 @@ const formatStatus = (status) => {
 const BookAppointment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const appointmentId = searchParams.get("appointmentId");
   const preselectedDoctorId = searchParams.get("doctorId");
 
   const [doctors, setDoctors] = useState([]);
@@ -117,6 +118,8 @@ const BookAppointment = () => {
     return <span className={className}>{label}</span>;
   };
 
+  
+
   // Check if the patient already has an active (non-cancelled) booking
   // for this doctor, so the status card shows up on reload instead of
   // letting them book a duplicate appointment.
@@ -164,6 +167,82 @@ const BookAppointment = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, doctorId, doctors.length]);
 
+  //new
+  useEffect(() => {
+  if (!appointmentId) return;
+
+  const fetchAppointment = async () => {
+    try {
+      const res = await API.get(`/appointments/${appointmentId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const appt = res.data;
+
+      setBookedAppointment({
+        id: appt._id,
+        doctorName: appt.doctorId.name,
+        specialization: appt.doctorId.specialization,
+        doctorSlug: appt.doctorId.slug,
+        date: appt.date,
+        timeSlot: appt.timeSlot,
+        status: appt.status,
+
+        consultationFee: appt.consultationFee,
+        paymentStatus: appt.paymentStatus,
+        paymentMethod: appt.paymentMethod,
+        transactionId: appt.transactionId,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  fetchAppointment();
+}, [appointmentId]);
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   if (!doctorId || !date || !timeSlot) {
+  //     return setError("Please fill in all fields.");
+  //   }
+
+  //   try {
+  //     setSubmitting(true);
+  //     setError("");
+
+  //     const res = await API.post(
+  //       "/appointments",
+  //       { doctorId, date, timeSlot },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     // Adjust these field names if your API returns something different
+  //     // (e.g. res.data.appointment._id instead of res.data._id).
+  //     const created = res.data;
+
+  //     setBookedAppointment({
+  //       id: created._id || created.id,
+  //       doctorName: selectedDoctor?.name || created.doctorName,
+  //       specialization: selectedDoctor?.specialization || created.specialization,
+  //       doctorSlug: selectedDoctor?.slug || created.doctorSlug,
+  //       date,
+  //       timeSlot,
+  //       status: created.status || "pending",
+  //     });
+
+
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError(err.response?.data?.error || "Failed to book appointment.");
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -176,28 +255,25 @@ const BookAppointment = () => {
       setError("");
 
       const res = await API.post(
-        "/appointments",
-        { doctorId, date, timeSlot },
+        "/payment/bkash/create",
+        {
+          doctorId,
+          date,
+          timeSlot,
+          consultationFee: selectedDoctor.consultationFee,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Adjust these field names if your API returns something different
-      // (e.g. res.data.appointment._id instead of res.data._id).
-      const created = res.data;
-
-      setBookedAppointment({
-        id: created._id || created.id,
-        doctorName: selectedDoctor?.name || created.doctorName,
-        specialization: selectedDoctor?.specialization || created.specialization,
-        doctorSlug: selectedDoctor?.slug || created.doctorSlug,
-        date,
-        timeSlot,
-        status: created.status || "pending",
-      });
+      if (res.data.success && res.data.bkashURL) {
+        window.location.href = res.data.bkashURL;
+      } else {
+        setError("Failed to initiate payment. Please try again.");
+        setSubmitting(false);
+      }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Failed to book appointment.");
-    } finally {
+      setError(err.response?.data?.message || "Failed to initiate payment.");
       setSubmitting(false);
     }
   };
@@ -255,6 +331,7 @@ const BookAppointment = () => {
         {checkingExisting ? (
           <p className="text-center text-[#3A4D3E]">Checking your bookings...</p>
         ) : bookedAppointment ? (
+
           // ---------- STATUS VIEW (shown after a successful booking) ----------
           <div className="space-y-5">
             <div className="border border-[#D8E5DA] rounded-lg p-5 space-y-3">
@@ -292,6 +369,31 @@ const BookAppointment = () => {
                   {formatStatus(bookedAppointment.status)}
                 </span>
               </div>
+
+                <div className="flex justify-between items-center">
+  <span className="font-semibold">Payment Status</span>
+
+  <span>{bookedAppointment.paymentStatus}</span>
+</div>
+
+<div className="flex justify-between items-center">
+  <span className="font-semibold">Payment Method</span>
+
+  <span>{bookedAppointment.paymentMethod}</span>
+</div>
+
+<div className="flex justify-between items-center">
+  <span className="font-semibold">Transaction ID</span>
+
+  <span>{bookedAppointment.transactionId}</span>
+</div>
+
+<div className="flex justify-between items-center">
+  <span className="font-semibold">Consultation Fee</span>
+
+  <span>BDT {bookedAppointment.consultationFee}</span>
+</div>
+
             </div>
 
             <div className="flex flex-wrap justify-center gap-4 pt-2">
@@ -389,6 +491,33 @@ const BookAppointment = () => {
               </select>
             </div>
 
+            {/* Consultation Fee */}
+              {selectedDoctor && (
+                <div className="border border-[#D8E5DA] rounded-lg p-4 bg-[#F7FAF7] flex justify-between items-center">
+                  <span className="font-semibold text-[#0F2A18]">Consultation Fee</span>
+                  <span className="text-[#0B3D1E] font-bold text-lg">
+                    BDT {selectedDoctor.consultationFee}
+                  </span>
+                </div>
+              )}
+
+            {/* payment */}
+          <div>
+            <label className="block font-semibold text-[#0F2A18] mb-2">
+              Payment Method
+            </label>
+
+            <label className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer">
+              <input
+                type="radio"
+                
+                readOnly
+              />
+
+              <span>bKash</span>
+            </label>
+          </div>
+
             {/* Buttons */}
             <div className="flex flex-wrap justify-center gap-4 pt-4">
               <button
@@ -396,7 +525,7 @@ const BookAppointment = () => {
                 disabled={submitting || loadingDoctors || !selectedDoctor}
                 className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300 disabled:opacity-60"
               >
-                {submitting ? "Booking..." : "Confirm Appointment"}
+                {submitting ? "Redirecting to bKash..." : "Pay & Book Appointment"}
               </button>
 
               <Link

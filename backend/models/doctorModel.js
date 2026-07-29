@@ -97,7 +97,7 @@ const doctorSchema = new Schema(
       type: String,
       required: true,
       enum: {
-        values: ["Male", "Female", "Other"],
+        values: ["male", "female", "other"],
         message: "Gender must be Male, Female, or Other.",
       },
     },
@@ -135,7 +135,7 @@ const doctorSchema = new Schema(
 );
 
 // Auto-generate slug from name before saving — prefixed with "dr" for doctors
-doctorSchema.pre("save", async function (next) {
+doctorSchema.pre("save", async function () { // next likha chilo bract e remove korsi
   if (!this.isModified("name") && this.slug) {
     return next();
   }
@@ -159,7 +159,7 @@ doctorSchema.pre("save", async function (next) {
   }
 
   this.slug = slug;
-  next();
+  // next();
 });
 
 module.exports = mongoose.model("Doctor", doctorSchema);

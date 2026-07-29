@@ -151,9 +151,34 @@ const updateAppointmentStatus = async (req, res) => {
   }
 };
 
+const getAppointmentById = async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(404).json({ error: "Invalid appointment ID" });
+  }
+
+  try {
+    const appointment = await Appointment.findById(id)
+      .populate("doctorId", "name specialization consultationFee profileImage")
+      .populate("patientId", "name");
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    res.status(200).json(appointment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createAppointment,
   getMyAppointments,
   getMyDoctorAppointments,
+
+  getAppointmentById,
+
   updateAppointmentStatus,
 };

@@ -86,6 +86,8 @@ const getMyPatientProfile = async (req,res)=>{
         const patient = await Users.findOne({
             UserAuthId:req.user._id
         }).populate("UserAuthId","Email Role")
+        console.log("UserAuthId from request:", req.user._id);
+        console.log("Fetched patient profile:", patient);
 
         if(!patient){
             return res.status(404).json({

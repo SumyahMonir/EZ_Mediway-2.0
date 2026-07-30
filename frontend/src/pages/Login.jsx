@@ -57,7 +57,7 @@ const Login = () => {
       localStorage.setItem("role", res.data.Role);
       localStorage.setItem("email", res.data.Email);
 
-      alert("Login successful!");
+
 
       if (res.data.Role === "admin") {
 

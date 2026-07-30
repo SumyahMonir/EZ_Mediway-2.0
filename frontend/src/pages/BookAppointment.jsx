@@ -65,6 +65,7 @@ const BookAppointment = () => {
       try {
         const res = await API.get("/doctors");
         setDoctors(res.data);
+        
         if (!preselectedDoctorId && res.data.length > 0) {
           setDoctorId(res.data[0]._id);
         }

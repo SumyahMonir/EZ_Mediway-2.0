@@ -72,6 +72,7 @@ const PatientDashboard = () => {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
+        console.log("Fetched profile:", appointmentsRes.data);
 
         setProfile(profileRes.data);
         setAppointments(appointmentsRes.data || []);

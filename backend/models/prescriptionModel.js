@@ -30,7 +30,7 @@ const prescriptionSchema = new Schema(
     advice: { type: String, trim: true, default: "" },
     followUp: { type: String, trim: true, default: "" },
     additionalNotes: { type: String, trim: true, default: "" },
-
+    dateIssued: { type: Date, default: Date.now },
     status: { type: String, enum: ["draft", "completed", "sent"], default: "draft" },
     pdfUrl: { type: String, default: null },
   },

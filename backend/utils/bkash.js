@@ -25,6 +25,9 @@ const getToken = async () => {
     }),
   });
   const data = await res.json();
+
+console.log("Grant Token Response:", data);
+
   if (!data.id_token) throw new Error("Token grant failed: " + JSON.stringify(data));
 
   cachedToken = data.id_token;
@@ -52,7 +55,11 @@ const createPayment = async (amount, invoiceNumber, callbackURL) => {
       merchantInvoiceNumber: invoiceNumber,
     }),
   });
-  return res.json();
+  const data = await res.json();
+
+console.log("Create Payment Response:", data);
+
+return data;
 };
 
 const executePayment = async (paymentID) => {
@@ -67,7 +74,11 @@ const executePayment = async (paymentID) => {
     },
     body: JSON.stringify({ paymentID }),
   });
-  return res.json();
+  const data = await res.json();
+
+console.log("Execute Payment Response:", data);
+
+return data;
 };
 
 module.exports = { getToken, createPayment, executePayment };

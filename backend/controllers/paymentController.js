@@ -31,6 +31,7 @@ const initiatePayment = async (req, res) => {
       `&timeSlot=${encodeURIComponent(timeSlot)}&fee=${consultationFee}`;
 
     const paymentData = await createPayment(consultationFee, invoiceNumber, callbackURL);
+    console.log("createPayment response:", paymentData);
 
     if (paymentData.bkashURL) {
       return res.status(200).json({
@@ -51,6 +52,7 @@ const initiatePayment = async (req, res) => {
 const paymentCallback = async (req, res) => {
   try {
     const { paymentID, status, doctorId, patientId, date, timeSlot, fee } = req.query;
+    console.log("Payment callback received:", req.query);
 
     if (status !== "success") {
       return res.redirect(`${process.env.CLIENT_URL}/payment-failed`);
@@ -60,18 +62,19 @@ const paymentCallback = async (req, res) => {
     // callback twice for the same payment — without this, a duplicate
     // appointment would get created on the second hit.
     const existing = await Appointment.findOne({ bkashPaymentID: paymentID });
+    console.log("Existing appointment with this paymentID:", existing);
     if (existing) {
       return res.redirect(`${process.env.CLIENT_URL}/book-appointment?appointmentId=${existing._id}`);
     }
-
+    const doctor = await Doctor.findById(doctorId);
     const executeData = await executePayment(paymentID);
-
+    console.log("executePayment response:", executeData);
     const patient = await Users.findOne({ UserAuthId: patientId });
     if (!patient) {
       return res.redirect(`${process.env.CLIENT_URL}/payment-failed`);
     }
 
-    if (executeData.statusCode === "0000" && executeData.transactionStatus === "Completed") {
+    if (executeData.statusCode === "0000" && executeData.transactionStatus === "completed") {
       const appointment = await Appointment.create({
         patientId: patient._id,
         doctorId,

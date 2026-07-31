@@ -27,20 +27,21 @@ const formatTime12hr = (time24) => {
 
 const slotLabel = (slot) => `${formatTime12hr(slot.startTime)} - ${formatTime12hr(slot.endTime)}`;
 
-// The backend's status enum is: "pending", "confirmed", "not_available",
-// "completed", "Cancelled" (only Cancelled is capitalized — that's how
-// it's defined in the Appointment schema). Compare against these exact
-// values; formatStatus() is only for what's shown on screen.
+// The backend's status enum is capitalized: "Pending", "Confirmed",
+// "Completed", "Cancelled". formatStatus() is only for what's shown on
+// screen — compare against the exact enum values everywhere else.
 const formatStatus = (status) => {
   if (!status) return "Pending";
-  if (status === "not_available") return "Not Available";
+  if (status === "Cancelled") return "Cancelled";
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-// Statuses that count as an "active" booking blocking a new one. Cancelled
-// and completed appointments are both done — the patient should be able
-// to book again in either case, not just after cancelling.
-const ACTIVE_STATUSES_BLOCKING_REBOOK = ["Pending", "Confirmed", "Cancelled"];
+// Statuses that count as an "active" booking blocking a new one. Only
+// Pending/Confirmed are still "in progress" — Completed AND Cancelled are
+// both finished, so neither should block booking again. (Cancelled was
+// mistakenly included here before, which would have silently blocked
+// rebooking and made a "Book Again" button after cancelling not work.)
+const ACTIVE_STATUSES_BLOCKING_REBOOK = ["Pending", "Confirmed"];
 
 const BookAppointment = () => {
   const navigate = useNavigate();
@@ -126,8 +127,6 @@ const BookAppointment = () => {
         setLoadingAvailability(true);
         const res = await API.get(`/availability/${doctorId}`, authHeaders);
         setAvailability(res.data);
-        console.log("Fetched availability:", res.data);
-
       } catch (err) {
         console.error(err);
         setAvailability({ schedule: [] });
@@ -203,11 +202,10 @@ const BookAppointment = () => {
     return <span className={className}>{label}</span>;
   };
 
-  // Check if the patient already has an ACTIVE (pending/confirmed/
-  // not_available) booking for this doctor, so the status card shows up
-  // on reload instead of letting them book a duplicate appointment.
-  // Cancelled AND completed appointments don't block a new booking —
-  // both are finished, one way or another.
+  // Check if the patient already has an ACTIVE (Pending/Confirmed) booking
+  // for this doctor, so the status card shows up on reload instead of
+  // letting them book a duplicate appointment. Cancelled AND Completed
+  // appointments don't block a new booking — both are finished.
   useEffect(() => {
     if (!token || !doctorId) return;
 
@@ -237,7 +235,7 @@ const BookAppointment = () => {
             doctorSlug: doctorInfo.slug,
             date: existing.date,
             timeSlot: existing.timeSlot,
-            status: existing.status || "pending",
+            status: existing.status || "Pending",
           });
         }
       } catch (err) {
@@ -313,12 +311,14 @@ const BookAppointment = () => {
           date,
           timeSlot,
           // NOTE: field name kept as "consultationFee" to match what the
-          // bKash creation endpoint already expects — its VALUE is now the
-          // patient-editable amount, not the doctor's fixed fee.
+          // bKash creation endpoint already expects — its VALUE currently
+          // just mirrors the doctor's fee since the editable amount input
+          // is temporarily removed from the form (see comment below).
           consultationFee: amount,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      console.log("bKash create response:", res.data);
 
       if (res.data.success && res.data.bkashURL) {
         window.location.href = res.data.bkashURL;
@@ -362,6 +362,15 @@ const BookAppointment = () => {
     }
   };
 
+  // "Fresh page, no previous info" — a plain client-side navigate wouldn't
+  // reset state that was only initialized once on mount (doctorId, date,
+  // payAmount, etc. would all still hold the old booking's values since
+  // this is the same component instance). A hard reload guarantees a truly
+  // blank form with nothing preselected.
+  const handleBookAgain = () => {
+    window.location.href = "/book-appointment";
+  };
+
   // Prevent picking a past date
   const today = new Date().toISOString().split("T")[0];
 
@@ -401,7 +410,6 @@ const BookAppointment = () => {
                     : ""}
                 </span>
               </div>
-
 
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#0F2A18]">Date</span>
@@ -451,7 +459,7 @@ const BookAppointment = () => {
             </div>
 
             <div className="flex flex-wrap justify-center gap-4 pt-2">
-              {bookedAppointment.status !== "Cancelled" && (
+              {bookedAppointment.status !== "Cancelled" ? (
                 <button
                   type="button"
                   onClick={handleCancel}
@@ -459,6 +467,14 @@ const BookAppointment = () => {
                   className="bg-red-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-700 transition-all duration-300 disabled:opacity-60"
                 >
                   {cancelling ? "Cancelling..." : "Cancel Appointment"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleBookAgain}
+                  className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300"
+                >
+                  Book Again
                 </button>
               )}
 
@@ -508,56 +524,55 @@ const BookAppointment = () => {
                 </p>
               )}
             </div>
+
             <div>
-  <label className="block font-semibold text-[#0F2A18] mb-2">
-    Available Slots
-  </label>
+              <label className="block font-semibold text-[#0F2A18] mb-2">
+                Available Slots
+              </label>
 
-  {loadingAvailability ? (
-    <p>Loading...</p>
-  ) : (
-    <div className="space-y-3">
-  {DAY_NAMES.map((dayName) => {
-    const day = (availability?.schedule || []).find(
-      (d) => d.day === dayName
-    );
+              {loadingAvailability ? (
+                <p>Loading...</p>
+              ) : (
+                <div className="space-y-3">
+                  {DAY_NAMES.map((dayName) => {
+                    const day = (availability?.schedule || []).find(
+                      (d) => d.day === dayName
+                    );
 
-    return (
-      <div
-        key={dayName}
-        className="border rounded-lg p-3 bg-[#F7FAF7]"
-      >
-        {/* Day name + availability status */}
-        <div className="flex justify-between items-center">
-          <p className="font-semibold">{dayName}</p>
+                    return (
+                      <div
+                        key={dayName}
+                        className="border rounded-lg p-3 bg-[#F7FAF7]"
+                      >
+                        <div className="flex justify-between items-center">
+                          <p className="font-semibold">{dayName}</p>
 
-          {!day?.slots?.length && (
-            <span className="text-red-500 text-sm font-medium">
-              Not Available
-            </span>
-          )}
-        </div>
+                          {!day?.slots?.length && (
+                            <span className="text-red-500 text-sm font-medium">
+                              Not Available
+                            </span>
+                          )}
+                        </div>
 
-        {/* Show slots only if available */}
-        {day?.slots?.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {day.slots.map((slot, i) => (
-              <span
-                key={i}
-                className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm"
-              >
-                {slotLabel(slot)}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  })}
-</div>
-  )}
-</div>
-            
+                        {day?.slots?.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {day.slots.map((slot, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm"
+                              >
+                                {slotLabel(slot)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Date */}
             <div>
               <label className="block font-semibold text-[#0F2A18] mb-2">
@@ -609,19 +624,12 @@ const BookAppointment = () => {
               )}
             </div>
 
-            {/* Consultation Fee — reference only, not what's charged
-            {selectedDoctor && (
-              <div className="border border-[#D8E5DA] rounded-lg p-4 bg-[#F7FAF7] flex justify-between items-center">
-                <span className="font-semibold text-[#0F2A18]">Consultation Fee</span>
-                <span className="text-[#0B3D1E] font-bold text-lg">
-                  BDT {selectedDoctor.consultationFee}
-                </span>
-              </div>
-            )}
+            {/* Consultation Fee + Amount to Pay — currently disabled here.
+                payAmount still exists in state (prefilled from the doctor's
+                fee) and is what actually gets sent to /payment/bkash/create,
+                it just isn't user-editable in the form right now. Let me
+                know if this was supposed to stay removed or come back. */}
 
-            {/* Amount to Pay — separate, editable field. The patient can pay
-                a different amount than the listed consultation fee. */}
-            | 
             {/* payment */}
             <div>
               <label className="block font-semibold text-[#0F2A18] mb-2">

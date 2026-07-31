@@ -169,9 +169,9 @@ const PrescriptionPanel = ({ doctorId, patientId, appointmentId, date, timeSlot,
                   <p><span className="font-semibold text-[#0F2A18]">Gender:</span> {patient?.gender || "-"}</p>
                   <p><span className="font-semibold text-[#0F2A18]">Blood Group:</span> {patient?.bloodGroup || "-"}</p>
                   <p><span className="font-semibold text-[#0F2A18]">Phone:</span> {patient?.phone || "-"}</p>
-                  <p><span className="font-semibold text-[#0F2A18]">Appointment Date:</span> {date}</p>
-                  <p><span className="font-semibold text-[#0F2A18]">Appointment Time:</span> {timeSlot}</p>
-                  <p className="col-span-2"><span className="font-semibold text-[#0F2A18]">Patient ID:</span> {patientId}</p>
+                  <p><span className="font-semibold text-[#0F2A18]">Weight:</span> {patient?.weight || "-"} kg</p>
+                  <p className="col-span-2"><span className="font-semibold text-[#0F2A18]">Appointment Date:</span> {date}</p>
+                  <p className="col-span-2"><span className="font-semibold text-[#0F2A18]">Appointment Time:</span> {timeSlot}</p>
                 </div>
               </div>
             )}

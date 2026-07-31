@@ -16,7 +16,11 @@ const DoctorAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actingId, setActingId] = useState(null); // appointment currently being confirmed/declined
+  const [actingId, setActingId] = useState(null); // appointment currently being confirmed/cancelled
+  const [cancellingId, setCancellingId] = useState(null); // apptId whose reason textarea is open
+  const [reasonDrafts, setReasonDrafts] = useState({}); // apptId -> in-progress reason text
+  const [errReasonId, setErrReasonId] = useState(null);
+  const [subError, setSubError] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -43,8 +47,11 @@ const DoctorAppointments = () => {
 
   // Only pending requests belong on this page — confirmed/completed/
   // cancelled/not_available appointments are handled elsewhere.
+  // NOTE: value must match the backend enum exactly ("pending", lowercase —
+  // see STATUS_OPTIONS in AppointmentHistory.jsx). This previously compared
+  // against "Pending" (capital P) and so silently matched nothing.
   const pendingAppointments = appointments
-    .filter((a) => a.status === "pending")
+    .filter((a) => a.status === "Pending")
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const handleUpdateStatus = async (apptId, status, doctorMessage) => {
@@ -52,16 +59,18 @@ const DoctorAppointments = () => {
       setActingId(apptId);
       setError("");
 
-      await API.patch(
-        `/appointments/${apptId}/status`,
-        { status, doctorMessage },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const payload = doctorMessage !== undefined ? { status, doctorMessage } : { status };
+      await API.patch(`/appointments/${apptId}/status`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      // Remove it from the pending list locally instead of refetching.
+      // Update status locally so it drops out of the pending list immediately
+      // instead of waiting for a refetch.
       setAppointments((prev) =>
         prev.map((appt) =>
-          (appt._id || appt.id) === apptId ? { ...appt, status } : appt
+          (appt._id || appt.id) === apptId
+            ? { ...appt, status, ...(doctorMessage !== undefined ? { doctorMessage } : {}) }
+            : appt
         )
       );
     } catch (err) {
@@ -74,17 +83,43 @@ const DoctorAppointments = () => {
     }
   };
 
+  // Enum value must match backend casing exactly — lowercase "confirmed".
   const handleConfirm = (apptId) => {
-    handleUpdateStatus(apptId, "confirmed");
+    handleUpdateStatus(apptId, "Confirmed");
   };
 
-  const handleNotAvailable = (apptId) => {
-    const message = window.prompt(
-      "Optional: let the patient know why you're not available for this slot."
-    );
-    // window.prompt returns null if cancelled — don't submit in that case.
-    if (message === null) return;
-    handleUpdateStatus(apptId, "not_available", message);
+  // "Cancel" opens an inline textarea (in the row below) instead of a
+  // window.prompt — the doctor types the reason there and submits it.
+  const openCancelReason = (apptId) => {
+    setCancellingId(apptId);
+    setErrReasonId(null);
+    setSubError("");
+  };
+
+  const dismissCancelReason = (apptId) => {
+    setCancellingId(null);
+    setErrReasonId((prev) => (prev === apptId ? null : prev));
+    setSubError("");
+  };
+
+  const handleCancelSubmit = async (apptId) => {
+    const reason = (reasonDrafts[apptId] ?? "").trim();
+    if (!reason) {
+      setErrReasonId(apptId);
+      setSubError("A cancellation reason is required.");
+      return;
+    }
+    await handleUpdateStatus(apptId, "Cancelled", reason);
+    // Row disappears from the pending list once status flips, but clean up
+    // the local UI state either way.
+    setCancellingId(null);
+    setErrReasonId(null);
+    setSubError("");
+    setReasonDrafts((prev) => {
+      const next = { ...prev };
+      delete next[apptId];
+      return next;
+    });
   };
 
   return (
@@ -124,40 +159,94 @@ const DoctorAppointments = () => {
                     const apptId = appt._id || appt.id;
                     const isActing = actingId === apptId;
 
-                    return (
-                      <tr key={apptId} className="border-b border-[#EEF5EF]">
-                        <td className="py-4 font-medium text-[#0F2A18]">
-                          {appt.patientId?.name || "Unknown"}
-                        </td>
-                        <td className="text-[#3A4D3E]">
-                          {appt.patientId?.phone || "—"}
-                        </td>
-                        <td className="text-[#3A4D3E]">
-                          {formatDate(appt.date)}
-                        </td>
-                        <td className="text-[#3A4D3E]">{appt.timeSlot}</td>
-                        <td>
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              type="button"
-                              onClick={() => handleConfirm(apptId)}
-                              disabled={isActing}
-                              className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] transition disabled:opacity-60"
-                            >
-                              {isActing ? "..." : "Confirm"}
-                            </button>
+                    const isCancelling = cancellingId === apptId;
 
-                            <button
-                              type="button"
-                              onClick={() => handleNotAvailable(apptId)}
-                              disabled={isActing}
-                              className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition disabled:opacity-60"
-                            >
-                              Not Available
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                    return (
+                      <React.Fragment key={apptId}>
+                        <tr className={isCancelling ? "" : "border-b border-[#EEF5EF]"}>
+                          <td className="py-4 font-medium text-[#0F2A18]">
+                            {appt.patientId?.name || "Unknown"}
+                          </td>
+                          <td className="text-[#3A4D3E]">
+                            {appt.patientId?.phone || "—"}
+                          </td>
+                          <td className="text-[#3A4D3E]">
+                            {formatDate(appt.date)}
+                          </td>
+                          <td className="text-[#3A4D3E]">{appt.timeSlot}</td>
+                          <td>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => handleConfirm(apptId)}
+                                disabled={isActing || isCancelling}
+                                className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] transition disabled:opacity-60"
+                              >
+                                {isActing ? "..." : "Confirm"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  isCancelling ? dismissCancelReason(apptId) : openCancelReason(apptId)
+                                }
+                                disabled={isActing}
+                                className="border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition disabled:opacity-60"
+                              >
+                                {isCancelling ? "Never mind" : "Cancel"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {isCancelling && (
+                          <tr className="border-b border-[#EEF5EF]">
+                            <td colSpan={5} className="pb-4">
+                              <div className="bg-[#FAFCFA] border border-[#D8E5DA] rounded-lg p-4">
+                                <p className="font-semibold text-[#0F2A18] mb-2 text-sm">
+                                  Reason for declining
+                                </p>
+                                <textarea
+                                  autoFocus
+                                  value={reasonDrafts[apptId] ?? ""}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setReasonDrafts((prev) => ({ ...prev, [apptId]: value }));
+                                    if (errReasonId === apptId) {
+                                      setErrReasonId(null);
+                                      setSubError("");
+                                    }
+                                  }}
+                                  rows={2}
+                                  placeholder="Reason shown to the patient..."
+                                  className="w-full border border-[#D8E5DA] rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+                                />
+                                {errReasonId === apptId && subError && (
+                                  <p className="text-red-500 text-sm mt-1">{subError}</p>
+                                )}
+                                <div className="flex gap-2 mt-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCancelSubmit(apptId)}
+                                    disabled={isActing}
+                                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm disabled:opacity-60"
+                                  >
+                                    {isActing ? "Submitting..." : "Submit & Decline"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => dismissCancelReason(apptId)}
+                                    disabled={isActing}
+                                    className="border border-[#D8E5DA] text-[#0F2A18] px-4 py-2 rounded-lg hover:bg-[#EEF5EF] transition text-sm disabled:opacity-60"
+                                  >
+                                    Dismiss
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

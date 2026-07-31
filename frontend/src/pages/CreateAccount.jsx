@@ -370,7 +370,7 @@ const CreateAccount = () => {
 
             <Field label="Phone Number">
               <input
-                type="number"
+                type="string"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className={inputClass}
@@ -386,9 +386,9 @@ const CreateAccount = () => {
                 required
               >
                 <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="others">Others</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Others">Others</option>
               </select>
             </Field>
 
@@ -438,6 +438,22 @@ const CreateAccount = () => {
                 className={inputClass}
                 required
               />
+              <select
+                value={blood}
+                onChange={(e) => setBlood(e.target.value)}
+                className={inputClass}
+                required
+              >
+                <option value="">Select Blood Group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
             </Field>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}

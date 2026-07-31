@@ -27,23 +27,36 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DoctorAppointments from "./pages/DoctorAppointments"; // adjust path
 import DoctorWaitingRoom from "./pages/DoctorWaitingRoom";
 import PatientWaitingRoom from "./pages/PatientWaitingRoom";
+import ManageAvailability from "./pages/ManageAvailability";
+import AppointmentHistory from "./pages/AppointmentHistory";
+import DoctorPatientProfile from "./pages/DoctorPatientProfile";
 
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path='/' element={<App/>}>
+    <Route path='/' element={<App />}>
       {/* local host diye gelei ami home pabo */}
       <Route index element={<Home />} /> //local host ee gele ami home page pabo
-      <Route path='home' element={<Home/>}/>
-      <Route path='about' element={<About/>} />
-      <Route path='doctors' element={<Doctors/>} />
+      <Route path='home' element={<Home />} />
+      <Route path='about' element={<About />} />
+      <Route path='doctors' element={<Doctors />} />
 
       <Route path="doctors/:slug" element={<DoctorDetails />} />
 
-      <Route path='contact' element={<Contact/>} />
-      <Route path='CreateAccount' element={<CreateAccount/>} />
-      <Route path='login' element={<Login/>} />
+      <Route path='contact' element={<Contact />} />
+      <Route path='CreateAccount' element={<CreateAccount />} />
+      <Route path='login' element={<Login />} />
       <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+
+
+      <Route
+        path="doctor/availability"
+        element={
+          <ProtectedRoute allowedRole="doctor">
+            <ManageAvailability />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected routes — require a logged-in user */}
       <Route
@@ -54,7 +67,7 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-      
+
 
       <Route
         path="patient/dashboard"
@@ -64,7 +77,7 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-       <Route
+      <Route
         path="doctor/waiting-room/:doctorId/:date/:timeSlot"
         element={
           <ProtectedRoute allowedRole="doctor">
@@ -72,7 +85,7 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
- 
+
       <Route
         path="patient/waiting-room/:doctorId/:date/:timeSlot"
         element={
@@ -89,10 +102,10 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-      <Route 
- path="admin/dashboard"
- element={<AdminDashboard/>}
-/>
+      <Route
+        path="admin/dashboard"
+        element={<AdminDashboard />}
+      />
 
       <Route
         path="profile"
@@ -102,12 +115,32 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+
+
+
+      <Route
+        path="doctor/history"
+        element={
+          <ProtectedRoute allowedRole="doctor">
+            <AppointmentHistory />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="doctor/patients/:patientId"
+        element={
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorPatientProfile />
+          </ProtectedRoute>
+        }
+      />
     </Route>
   )
 )
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router}/>
+    <RouterProvider router={router} />
   </StrictMode>,
 )

@@ -2,15 +2,30 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api";
 
-const TIME_SLOTS = [
-  "09:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "11:00 AM - 12:00 PM",
-  "12:00 PM - 01:00 PM",
-  "02:00 PM - 03:00 PM",
-  "03:00 PM - 04:00 PM",
-  "04:00 PM - 05:00 PM",
-];
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Force-parses a "YYYY-MM-DD" date-only string as UTC, then reads the UTC
+// day-of-week — this must match how the date was stored/interpreted
+// elsewhere (see the isoDate/localIsoDate split in DoctorDashboard.jsx and
+// waitingRoomController.js). Using the browser's local timezone here could
+// shift which calendar day is picked, and therefore which day's slots show.
+const getDayName = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  return DAY_NAMES[d.getUTCDay()];
+};
+
+// "HH:MM" (24hr, from the availability schedule) -> "h:mm AM/PM"
+const formatTime12hr = (time24) => {
+  if (!time24) return "";
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+};
+
+const slotLabel = (slot) => `${formatTime12hr(slot.startTime)} - ${formatTime12hr(slot.endTime)}`;
 
 // The backend's status enum is: "pending", "confirmed", "not_available",
 // "completed", "Cancelled" (only Cancelled is capitalized — that's how
@@ -25,7 +40,7 @@ const formatStatus = (status) => {
 // Statuses that count as an "active" booking blocking a new one. Cancelled
 // and completed appointments are both done — the patient should be able
 // to book again in either case, not just after cancelling.
-const ACTIVE_STATUSES_BLOCKING_REBOOK = ["pending", "confirmed", "not_available"];
+const ACTIVE_STATUSES_BLOCKING_REBOOK = ["Pending", "Confirmed", "Cancelled"];
 
 const BookAppointment = () => {
   const navigate = useNavigate();
@@ -38,7 +53,14 @@ const BookAppointment = () => {
 
   const [doctorId, setDoctorId] = useState(preselectedDoctorId || "");
   const [date, setDate] = useState("");
-  const [timeSlot, setTimeSlot] = useState(TIME_SLOTS[0]);
+  const [timeSlot, setTimeSlot] = useState("");
+
+  // The doctor's full weekly schedule, fetched once per doctor — the day's
+  // slots are derived from this + the selected date, not fetched per-date.
+  const [availability, setAvailability] = useState(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  const [payAmount, setPayAmount] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -49,6 +71,7 @@ const BookAppointment = () => {
   const [bookedAppointment, setBookedAppointment] = useState(null);
 
   const token = localStorage.getItem("token");
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
   // Redirect if not logged in
   useEffect(() => {
@@ -65,7 +88,7 @@ const BookAppointment = () => {
       try {
         const res = await API.get("/doctors");
         setDoctors(res.data);
-        
+
         if (!preselectedDoctorId && res.data.length > 0) {
           setDoctorId(res.data[0]._id);
         }
@@ -84,6 +107,62 @@ const BookAppointment = () => {
   // or defaulted to the first doctor above) — we never let the user
   // swap it via a dropdown anymore.
   const selectedDoctor = doctors.find((doc) => doc._id === doctorId);
+
+  // Prefill the "amount to pay" box with the doctor's listed fee once
+  // they're known — the patient can still change it before submitting.
+  useEffect(() => {
+    if (selectedDoctor?.consultationFee && !payAmount) {
+      setPayAmount(String(selectedDoctor.consultationFee));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDoctor?.consultationFee]);
+
+  // Fetch this doctor's weekly availability once we know who they are
+  useEffect(() => {
+    if (!doctorId || !token) return;
+
+    const fetchAvailability = async () => {
+      try {
+        setLoadingAvailability(true);
+        const res = await API.get(`/availability/${doctorId}`, authHeaders);
+        setAvailability(res.data);
+        console.log("Fetched availability:", res.data);
+
+      } catch (err) {
+        console.error(err);
+        setAvailability({ schedule: [] });
+      } finally {
+        setLoadingAvailability(false);
+      }
+    };
+
+    fetchAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doctorId, token]);
+
+  // The specific day's slots, derived from the selected date + the fetched
+  // weekly schedule — empty if the doctor isn't available that day at all.
+  const daySlots = (() => {
+    if (!date || !availability) return [];
+    const dayName = getDayName(date);
+    const entry = (availability.schedule || []).find((e) => e.day === dayName);
+    return entry?.slots || [];
+  })();
+
+  // Whenever the available slots for the chosen date change, make sure the
+  // selected timeSlot is still one of them — reset to the first one
+  // otherwise (or clear it if there are none).
+  useEffect(() => {
+    if (daySlots.length === 0) {
+      setTimeSlot("");
+      return;
+    }
+    const labels = daySlots.map(slotLabel);
+    if (!labels.includes(timeSlot)) {
+      setTimeSlot(labels[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, availability]);
 
   // Helper: some appointment models populate doctorId with the full
   // doctor doc, others just store the raw id string. Handle both.
@@ -123,8 +202,6 @@ const BookAppointment = () => {
     }
     return <span className={className}>{label}</span>;
   };
-
-  
 
   // Check if the patient already has an ACTIVE (pending/confirmed/
   // not_available) booking for this doctor, so the status card shows up
@@ -176,87 +253,53 @@ const BookAppointment = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, doctorId, doctors.length]);
 
-  //new
+  // Loads the booking status card straight from an appointmentId in the URL
+  // (e.g. after returning from the bKash redirect).
   useEffect(() => {
-  if (!appointmentId) return;
+    if (!appointmentId) return;
 
-  const fetchAppointment = async () => {
-    try {
-      const res = await API.get(`/appointments/${appointmentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const fetchAppointment = async () => {
+      try {
+        const res = await API.get(`/appointments/${appointmentId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const appt = res.data;
+        const appt = res.data;
 
-      setBookedAppointment({
-        id: appt._id,
-        doctorName: appt.doctorId.name,
-        specialization: appt.doctorId.specialization,
-        doctorSlug: appt.doctorId.slug,
-        date: appt.date,
-        timeSlot: appt.timeSlot,
-        status: appt.status,
+        setBookedAppointment({
+          id: appt._id,
+          doctorName: appt.doctorId.name,
+          specialization: appt.doctorId.specialization,
+          doctorSlug: appt.doctorId.slug,
+          date: appt.date,
+          timeSlot: appt.timeSlot,
+          status: appt.status,
 
-        consultationFee: appt.consultationFee,
-        paymentStatus: appt.paymentStatus,
-        paymentMethod: appt.paymentMethod,
-        transactionId: appt.transactionId,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
+          consultationFee: appt.consultationFee,
+          paymentStatus: appt.paymentStatus,
+          paymentMethod: appt.paymentMethod,
+          transactionId: appt.transactionId,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    };
 
-  fetchAppointment();
-}, [appointmentId]);
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-
-  //   if (!doctorId || !date || !timeSlot) {
-  //     return setError("Please fill in all fields.");
-  //   }
-
-  //   try {
-  //     setSubmitting(true);
-  //     setError("");
-
-  //     const res = await API.post(
-  //       "/appointments",
-  //       { doctorId, date, timeSlot },
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
-
-  //     // Adjust these field names if your API returns something different
-  //     // (e.g. res.data.appointment._id instead of res.data._id).
-  //     const created = res.data;
-
-  //     setBookedAppointment({
-  //       id: created._id || created.id,
-  //       doctorName: selectedDoctor?.name || created.doctorName,
-  //       specialization: selectedDoctor?.specialization || created.specialization,
-  //       doctorSlug: selectedDoctor?.slug || created.doctorSlug,
-  //       date,
-  //       timeSlot,
-  //       status: created.status || "pending",
-  //     });
-
-
-  //   } catch (err) {
-  //     console.error(err);
-  //     setError(err.response?.data?.error || "Failed to book appointment.");
-  //   } finally {
-  //     setSubmitting(false);
-  //   }
-  // };
+    fetchAppointment();
+  }, [appointmentId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!doctorId || !date || !timeSlot) {
       return setError("Please fill in all fields.");
+    }
+
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) {
+      return setError("Please enter a valid amount to pay.");
     }
 
     try {
@@ -269,7 +312,10 @@ const BookAppointment = () => {
           doctorId,
           date,
           timeSlot,
-          consultationFee: selectedDoctor.consultationFee,
+          // NOTE: field name kept as "consultationFee" to match what the
+          // bKash creation endpoint already expects — its VALUE is now the
+          // patient-editable amount, not the doctor's fixed fee.
+          consultationFee: amount,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -320,10 +366,9 @@ const BookAppointment = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    confirmed: "bg-green-100 text-green-800 border-green-300",
-    completed: "bg-blue-100 text-blue-800 border-blue-300",
-    not_available: "bg-gray-100 text-gray-700 border-gray-300",
+    Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    Confirmed: "bg-green-100 text-green-800 border-green-300",
+    Completed: "bg-blue-100 text-blue-800 border-blue-300",
     Cancelled: "bg-red-100 text-red-800 border-red-300",
   };
 
@@ -357,6 +402,7 @@ const BookAppointment = () => {
                 </span>
               </div>
 
+
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#0F2A18]">Date</span>
                 <span className="text-[#3A4D3E]">{bookedAppointment.date}</span>
@@ -370,38 +416,37 @@ const BookAppointment = () => {
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#0F2A18]">Status</span>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                    statusColors[bookedAppointment.status] ||
+                  className={`px-3 py-1 rounded-full text-sm font-medium border ${statusColors[bookedAppointment.status] ||
                     "bg-gray-100 text-gray-800 border-gray-300"
-                  }`}
+                    }`}
                 >
                   {formatStatus(bookedAppointment.status)}
                 </span>
               </div>
 
-                <div className="flex justify-between items-center">
-  <span className="font-semibold">Payment Status</span>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Payment Status</span>
 
-  <span>{bookedAppointment.paymentStatus}</span>
-</div>
+                <span>{bookedAppointment.paymentStatus}</span>
+              </div>
 
-<div className="flex justify-between items-center">
-  <span className="font-semibold">Payment Method</span>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Payment Method</span>
 
-  <span>{bookedAppointment.paymentMethod}</span>
-</div>
+                <span>{bookedAppointment.paymentMethod}</span>
+              </div>
 
-<div className="flex justify-between items-center">
-  <span className="font-semibold">Transaction ID</span>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Transaction ID</span>
 
-  <span>{bookedAppointment.transactionId}</span>
-</div>
+                <span>{bookedAppointment.transactionId}</span>
+              </div>
 
-<div className="flex justify-between items-center">
-  <span className="font-semibold">Consultation Fee</span>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Consultation Fee</span>
 
-  <span>BDT {bookedAppointment.consultationFee}</span>
-</div>
+                <span>BDT {bookedAppointment.consultationFee}</span>
+              </div>
 
             </div>
 
@@ -463,7 +508,56 @@ const BookAppointment = () => {
                 </p>
               )}
             </div>
+            <div>
+  <label className="block font-semibold text-[#0F2A18] mb-2">
+    Available Slots
+  </label>
 
+  {loadingAvailability ? (
+    <p>Loading...</p>
+  ) : (
+    <div className="space-y-3">
+  {DAY_NAMES.map((dayName) => {
+    const day = (availability?.schedule || []).find(
+      (d) => d.day === dayName
+    );
+
+    return (
+      <div
+        key={dayName}
+        className="border rounded-lg p-3 bg-[#F7FAF7]"
+      >
+        {/* Day name + availability status */}
+        <div className="flex justify-between items-center">
+          <p className="font-semibold">{dayName}</p>
+
+          {!day?.slots?.length && (
+            <span className="text-red-500 text-sm font-medium">
+              Not Available
+            </span>
+          )}
+        </div>
+
+        {/* Show slots only if available */}
+        {day?.slots?.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {day.slots.map((slot, i) => (
+              <span
+                key={i}
+                className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm"
+              >
+                {slotLabel(slot)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+  )}
+</div>
+            
             {/* Date */}
             <div>
               <label className="block font-semibold text-[#0F2A18] mb-2">
@@ -478,60 +572,78 @@ const BookAppointment = () => {
                 className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
                 required
               />
+              {date && (
+                <p className="text-sm text-[#6B7B6E] mt-2">
+                  {getDayName(date)}
+                </p>
+              )}
             </div>
 
-            {/* Time */}
+            {/* Time — now driven by the doctor's real weekly availability */}
             <div>
               <label className="block font-semibold text-[#0F2A18] mb-2">
                 Select Time
               </label>
 
-              <select
-                value={timeSlot}
-                onChange={(e) => setTimeSlot(e.target.value)}
-                className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
-                required
-              >
-                {TIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
+              {!date ? (
+                <p className="text-[#6B7B6E] text-sm">Pick a date first.</p>
+              ) : loadingAvailability ? (
+                <p className="text-[#6B7B6E] text-sm">Loading available times...</p>
+              ) : daySlots.length === 0 ? (
+                <p className="text-red-500 text-sm">
+                  Dr. {selectedDoctor?.name || "this doctor"} isn't available on {getDayName(date)}. Please pick a different date.
+                </p>
+              ) : (
+                <select
+                  value={timeSlot}
+                  onChange={(e) => setTimeSlot(e.target.value)}
+                  className="w-full border border-[#D8E5DA] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
+                  required
+                >
+                  {daySlots.map((slot, i) => (
+                    <option key={i} value={slotLabel(slot)}>
+                      {slotLabel(slot)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {/* Consultation Fee */}
-              {selectedDoctor && (
-                <div className="border border-[#D8E5DA] rounded-lg p-4 bg-[#F7FAF7] flex justify-between items-center">
-                  <span className="font-semibold text-[#0F2A18]">Consultation Fee</span>
-                  <span className="text-[#0B3D1E] font-bold text-lg">
-                    BDT {selectedDoctor.consultationFee}
-                  </span>
-                </div>
-              )}
+            {/* Consultation Fee — reference only, not what's charged
+            {selectedDoctor && (
+              <div className="border border-[#D8E5DA] rounded-lg p-4 bg-[#F7FAF7] flex justify-between items-center">
+                <span className="font-semibold text-[#0F2A18]">Consultation Fee</span>
+                <span className="text-[#0B3D1E] font-bold text-lg">
+                  BDT {selectedDoctor.consultationFee}
+                </span>
+              </div>
+            )}
 
+            {/* Amount to Pay — separate, editable field. The patient can pay
+                a different amount than the listed consultation fee. */}
+            | 
             {/* payment */}
-          <div>
-            <label className="block font-semibold text-[#0F2A18] mb-2">
-              Payment Method
-            </label>
+            <div>
+              <label className="block font-semibold text-[#0F2A18] mb-2">
+                Payment Method
+              </label>
 
-            <label className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer">
-              <input
-                type="radio"
-                
-                readOnly
-              />
+              <label className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer">
+                <input
+                  type="radio"
+                  checked
+                  readOnly
+                />
 
-              <span>bKash</span>
-            </label>
-          </div>
+                <span>bKash</span>
+              </label>
+            </div>
 
             {/* Buttons */}
             <div className="flex flex-wrap justify-center gap-4 pt-4">
               <button
                 type="submit"
-                disabled={submitting || loadingDoctors || !selectedDoctor}
+                disabled={submitting || loadingDoctors || !selectedDoctor || daySlots.length === 0}
                 className="bg-[#0B3D1E] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#082B15] transition-all duration-300 disabled:opacity-60"
               >
                 {submitting ? "Redirecting to bKash..." : "Pay & Book Appointment"}

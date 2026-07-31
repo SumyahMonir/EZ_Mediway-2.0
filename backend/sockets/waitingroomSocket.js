@@ -106,7 +106,7 @@ function initWaitingRoomSocket(io) {
             timeSlot,
             date: normalizeDate(date),
             patientId: patient._id,
-            status: "confirmed",
+            status: "Confirmed",
           });
           if (!appt) {
             return socket.emit("waiting-room:error", { error: "No confirmed appointment for this slot" });
@@ -196,7 +196,7 @@ function initWaitingRoomSocket(io) {
 
     // DOCTOR — finished with the current patient, advance the queue
     socket.on("waiting-room:complete", async () => {
-      await advanceQueue(nsp, socket, "completed");
+      await advanceQueue(nsp, socket, "Completed");
     });
 
     // DOCTOR — current patient isn't responding, send them to the back

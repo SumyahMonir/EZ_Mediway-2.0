@@ -19,14 +19,12 @@ const formatDate = (dateStr) => {
 // exact values; use formatStatus() only for what's shown on screen.
 const statusColor = (status) => {
   switch (status) {
-    case "completed":
+    case "Completed":
       return "text-[#2E7D32]";
     case "Cancelled":
       return "text-red-600";
-    case "confirmed":
+    case "Confirmed":
       return "text-[#0B3D1E]";
-    case "not_available":
-      return "text-gray-500";
     default:
       return "text-yellow-600"; // pending / anything else
   }
@@ -34,7 +32,7 @@ const statusColor = (status) => {
 
 const formatStatus = (status) => {
   if (!status) return "Pending";
-  if (status === "not_available") return "Not Available";
+  if (status === "Cancelled") return "Cancelled";
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
@@ -72,7 +70,6 @@ const PatientDashboard = () => {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
-        console.log("Fetched profile:", appointmentsRes.data);
 
         setProfile(profileRes.data);
         setAppointments(appointmentsRes.data || []);
@@ -237,7 +234,7 @@ const PatientDashboard = () => {
                       : ""}
                   </p>
 
-                  {upcomingAppointment.status === "confirmed" &&
+                  {upcomingAppointment.status === "Confirmed" &&
                     isToday(upcomingAppointment.date) && (
                       <button
                         type="button"
@@ -336,10 +333,15 @@ const PatientDashboard = () => {
                         </td>
                         <td className={`font-medium ${statusColor(appt.status)}`}>
                           {formatStatus(appt.status)}
+                          {appt.status === "Cancelled" && appt.doctorMessage && (
+                            <p className="text-xs text-gray-500 font-normal mt-1 max-w-xs">
+                              Reason: {appt.doctorMessage}
+                            </p>
+                          )}
                         </td>
                         <td>
                           <div className="flex gap-2 justify-end">
-                            {appt.status === "confirmed" && isToday(appt.date) && (
+                            {appt.status === "Confirmed" && isToday(appt.date) && (
                               <button
                                 type="button"
                                 onClick={() => handleJoinWaitingRoom(appt)}

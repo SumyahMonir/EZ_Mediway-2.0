@@ -19,6 +19,7 @@ const adminRoutes = require('./routes/adminRoute')
 const appointmentRoutes = require('./routes/appointmentRoute')
 const waitingRoomRoutes = require('./routes/waitingroomRoute')
 const prescriptionRoutes = require('./routes/prescriptionRoute')
+const availabilityRoutes = require('./routes/availabilityRoute')
 
 const paymentRoutes = require("./routes/paymentRoutes");
 
@@ -50,7 +51,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/appointments', appointmentRoutes)
 app.use('/api/waiting-room', waitingRoomRoutes)
 app.use('/api/prescriptions', prescriptionRoutes)
-
+app.use('/api/availability', availabilityRoutes)
 app.use("/api/payment", paymentRoutes);
 
 // 404 handler — after routes, catches anything unmatched

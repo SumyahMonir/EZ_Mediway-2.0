@@ -99,7 +99,7 @@ const updateAppointmentStatus = async (req, res) => {
 
     // ---- DOCTOR PATH (unchanged from before) ----
     if (req.user.Role === "doctor") {
-      const allowedStatuses = ["confirmed", "not_available", "completed"];
+      const allowedStatuses = ["Pending", "Confirmed", "Completed", "Cancelled"];
       if (!allowedStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status value" });
       }
@@ -110,9 +110,9 @@ const updateAppointmentStatus = async (req, res) => {
       }
 
       const updates = { status };
-      if (status === "not_available") {
-        updates.doctorMessage = doctorMessage || "";
-      }
+     if (status === "Cancelled") {
+  updates.doctorMessage = doctorMessage || "";
+}
 
       const updated = await Appointment.findByIdAndUpdate(id, updates, { new: true });
       return res.status(200).json(updated);
@@ -129,7 +129,7 @@ const updateAppointmentStatus = async (req, res) => {
         return res.status(403).json({ error: "Not authorized to update this appointment" });
       }
 
-      if (appointment.status === "completed") {
+      if (appointment.status === "Completed") {
         return res.status(400).json({ error: "Cannot cancel a completed appointment" });
       }
 

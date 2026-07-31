@@ -97,7 +97,7 @@ const doctorSchema = new Schema(
       type: String,
       required: true,
       enum: {
-        values: ["male", "female", "other"],
+        values: ["Male", "Female", "Other"],
         message: "Gender must be Male, Female, or Other.",
       },
     },

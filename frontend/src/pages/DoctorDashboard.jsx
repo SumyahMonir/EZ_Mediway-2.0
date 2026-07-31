@@ -39,10 +39,9 @@ const sameDay = (dateStr, referenceNow) => isoDate(dateStr) === localIsoDate(ref
 // Backend status enum: "pending", "confirmed", "not_available",
 // "completed", "Cancelled" (only Cancelled is capitalized).
 const statusStyles = {
-  pending: "bg-yellow-100 text-yellow-700",
-  confirmed: "bg-green-100 text-green-700",
-  completed: "bg-blue-100 text-blue-700",
-  not_available: "bg-gray-200 text-gray-700",
+  Pending: "bg-yellow-100 text-yellow-700",
+  Confirmed: "bg-green-100 text-green-700",
+  Completed: "bg-blue-100 text-blue-700",
   Cancelled: "bg-red-100 text-red-700",
 };
 
@@ -57,12 +56,27 @@ const formatStatus = (status) => {
 // until that field exists on the backend.
 const VISIT_TYPE_PLACEHOLDER = "Consultation";
 
+const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// "HH:MM" (24hr, what the availability schedule stores) -> "h:mm AM/PM"
+const formatTime12hr = (time24) => {
+  if (!time24) return "";
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+};
+
 const DoctorDashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [availability, setAvailability] = useState(null); // { schedule: [{day, slots}] }
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
 
   const token = localStorage.getItem("token");
 
@@ -89,6 +103,26 @@ const DoctorDashboard = () => {
     };
 
     fetchDashboardData();
+  }, [token]);
+
+  // Real availability schedule for the sidebar card, replacing the old
+  // hardcoded "Sun - Thu / 09 AM - 05 PM" placeholder.
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        setLoadingAvailability(true);
+        const res = await API.get("/availability/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setAvailability(res.data);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoadingAvailability(false);
+      }
+    };
+
+    fetchAvailability();
   }, [token]);
 
   const today = new Date();
@@ -133,6 +167,19 @@ const DoctorDashboard = () => {
   const upcomingPatientIds = new Set(
     upcomingAppointments.map((a) => a.patientId?._id || a.patientId)
   );
+
+  // Total configured slot count across the week — drives the "Available
+  // Slots" stat card, replacing the old hardcoded "12".
+  const totalWeeklySlots = (availability?.schedule || []).reduce(
+    (sum, entry) => sum + (entry.slots?.length || 0),
+    0
+  );
+
+  // Sorted into calendar-week order (Sun..Sat) rather than insertion order,
+  // since the backend only stores days that actually have slots.
+  const scheduleByDay = DAY_ORDER
+    .map((day) => (availability?.schedule || []).find((entry) => entry.day === day))
+    .filter(Boolean);
 
   // Recent Patients — most recent distinct patients across all appointments.
   const sortedByDateDesc = [...appointments].sort(
@@ -222,14 +269,14 @@ const DoctorDashboard = () => {
             <p className="text-sm text-blue-600 mt-3">Next 3 days</p>
           </div>
 
-          {/* Available Slots — no slots/schedule model on the backend yet,
-              kept hardcoded per your instruction. */}
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
             <p className="text-gray-500">Available Slots</p>
 
-            <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">12</h2>
+            <h2 className="text-4xl font-bold text-[#0B3D1E] mt-3">
+              {loadingAvailability ? "..." : totalWeeklySlots}
+            </h2>
 
-            <p className="text-sm text-yellow-700 mt-3">Ready to book</p>
+            <p className="text-sm text-yellow-700 mt-3">Per week</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
@@ -249,12 +296,12 @@ const DoctorDashboard = () => {
 
           <div className="grid md:grid-cols-3 gap-5">
             <Link
-              to="#"
+              to="/doctor/history"
               className="bg-[#0B3D1E] text-white rounded-xl p-6 hover:bg-[#082B15] transition"
             >
-              <h3 className="text-xl font-semibold">Manage Availability</h3>
+              <h3 className="text-xl font-semibold">Appointment History</h3>
               <p className="text-sm mt-2 text-[#D8E5DA]">
-                Update your available days and time slots.
+                View your appointment history.
               </p>
             </Link>
 
@@ -343,7 +390,7 @@ const DoctorDashboard = () => {
                         </td>
                         <td>
                           <div className="flex gap-2">
-                            {appt.status === "confirmed" && (
+                            {appt.status === "Confirmed" && (
                               <button
                                 onClick={() => handleOpenWaitingRoom(appt)}
                                 className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] whitespace-nowrap"
@@ -367,32 +414,39 @@ const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* Availability — no schedule/slots model on the backend yet,
-              kept fully hardcoded per your instruction. */}
+          {/* Availability — now pulled from the real weekly schedule */}
           <div className="space-y-6">
             <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6">
               <h2 className="text-2xl font-bold text-[#0F2A18] mb-5">
                 Availability
               </h2>
 
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Working Days</span>
-                  <span className="font-semibold">Sun - Thu</span>
+              {loadingAvailability ? (
+                <p className="text-gray-500">Loading availability...</p>
+              ) : scheduleByDay.length === 0 ? (
+                <p className="text-gray-500">
+                  No availability set yet — add your weekly schedule to start
+                  accepting bookings.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {scheduleByDay.map((entry) => (
+                    <div key={entry.day} className="flex justify-between items-start gap-4">
+                      <span className="font-medium text-[#0F2A18] whitespace-nowrap">{entry.day}</span>
+                      <span className="text-right text-sm text-gray-600">
+                        {entry.slots
+                          .map((s) => `${formatTime12hr(s.startTime)} - ${formatTime12hr(s.endTime)}`)
+                          .join(", ")}
+                      </span>
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                <div className="flex justify-between">
-                  <span>Working Time</span>
-                  <span className="font-semibold">09 AM - 05 PM</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span>Status</span>
-                  <span className="text-green-600 font-semibold">Available</span>
-                </div>
-              </div>
-
-              <button className="w-full mt-6 bg-[#0B3D1E] text-white py-3 rounded-xl hover:bg-[#082B15] transition">
+              <button
+                onClick={() => navigate("/doctor/availability")}
+                className="w-full mt-6 bg-[#0B3D1E] text-white py-3 rounded-xl hover:bg-[#082B15] transition"
+              >
                 Edit Availability
               </button>
             </div>

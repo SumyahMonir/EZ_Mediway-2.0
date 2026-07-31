@@ -117,7 +117,7 @@ const DoctorWaitingRoom = () => {
         setCompleting(true);
         await API.patch(
           `/appointments/${currentEntry.appointmentId}/status`,
-          { status: "completed" },
+          { status: "Completed" },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (err) {

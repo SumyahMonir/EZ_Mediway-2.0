@@ -46,8 +46,8 @@ const userSchema = new Schema(
       type: String,
       required: true,
       enum: {
-        values: ["male", "female", "others"],
-        message: "Gender must be male, female, or others.",
+        values: ["Male", "Female", "Others"],
+        message: "Gender must be Male, Female, or Others.",
       },
     },
 

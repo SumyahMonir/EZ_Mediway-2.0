@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../api";
 
@@ -37,6 +37,10 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const fileInputRef = useRef(null);
 
   const dashboardRoute = role === "doctor" ? "/doctor/dashboard" : role === "admin"
     ? "/admin/dashboard"
@@ -157,6 +161,52 @@ const Profile = () => {
     }
   };
 
+  // Opens the hidden file input when the "change photo" overlay is clicked
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Uploads immediately on file selection — independent of the
+  // name/phone/etc "Edit Profile" flow, same pattern as Navbar's avatar.
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Image must be under 5MB.");
+      return;
+    }
+
+    const endpoint = role === "doctor" ? "/doctors/upload-profile-image" : "/users/upload-profile-image";
+
+    const formPayload = new FormData();
+    formPayload.append("image", file);
+
+    try {
+      setUploadingPhoto(true);
+      setPhotoError("");
+
+      const res = await API.post(endpoint, formPayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Doctor endpoint returns { doctor }, patient endpoint returns { user }
+      const updated = res.data.doctor || res.data.user;
+      if (updated) setProfile(updated);
+    } catch (err) {
+      console.error(err);
+      setPhotoError(err.response?.data?.message || "Failed to upload photo.");
+    } finally {
+      setUploadingPhoto(false);
+      // Reset so selecting the same file again still fires onChange
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <section className="bg-[#F7FAF7] min-h-screen py-10">
       <div className="max-w-5xl mx-auto px-6">
@@ -164,15 +214,34 @@ const Profile = () => {
         {/* Heading */}
         <div className="bg-white rounded-2xl shadow-md border border-[#D8E5DA] p-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <img
-              src={avatarUrl}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = fallbackAvatar;
-              }}
-              alt="Profile"
-              className="w-40 h-40 rounded-full border-4 border-[#D8E5DA] object-cover"
-            />
+            <div className="relative group">
+              <img
+                src={avatarUrl}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = fallbackAvatar;
+                }}
+                alt="Profile"
+                className="w-40 h-40 rounded-full border-4 border-[#D8E5DA] object-cover"
+              />
+
+              <button
+                type="button"
+                onClick={handlePhotoClick}
+                disabled={uploadingPhoto}
+                className="absolute inset-0 w-40 h-40 rounded-full bg-black/50 text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center disabled:opacity-100"
+              >
+                {uploadingPhoto ? "Uploading..." : "Change Photo"}
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
 
             <div>
               <h2 className="text-2xl font-bold text-[#0F2A18]">
@@ -186,6 +255,8 @@ const Profile = () => {
               <p className="mt-1 text-gray-500">
                 {role === "doctor" ? profile?.hospital || "—" : profile?.email || ""}
               </p>
+
+              {photoError && <p className="text-red-500 text-sm mt-2">{photoError}</p>}
             </div>
           </div>
         </div>

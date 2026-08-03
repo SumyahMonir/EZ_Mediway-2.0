@@ -10,6 +10,10 @@ const router = express.Router();
 
 router.get("/me", requireAuth, getMyAvailability);
 router.put("/me", requireAuth, setAvailability);
-router.get("/:doctorId", requireAuth, getDoctorAvailability);
+
+// Public — same access level as GET /doctors and /doctors/slug/:slug.
+// Schedule data isn't sensitive, and this needs to be visible to
+// logged-out visitors browsing doctor cards.
+router.get("/:doctorId", getDoctorAvailability);
 
 module.exports = router;

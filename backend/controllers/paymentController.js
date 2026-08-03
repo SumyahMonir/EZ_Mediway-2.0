@@ -74,7 +74,7 @@ const paymentCallback = async (req, res) => {
       return res.redirect(`${process.env.CLIENT_URL}/payment-failed`);
     }
 
-    if (executeData.statusCode === "0000" && executeData.transactionStatus === "completed") {
+    if (executeData.statusCode === "0000" && executeData.transactionStatus === "Completed") {
       const appointment = await Appointment.create({
         patientId: patient._id,
         doctorId,

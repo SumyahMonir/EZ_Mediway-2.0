@@ -36,8 +36,8 @@ const localIsoDate = (d) => {
 
 const sameDay = (dateStr, referenceNow) => isoDate(dateStr) === localIsoDate(referenceNow);
 
-// Backend status enum: "pending", "confirmed", "not_available",
-// "completed", "Cancelled" (only Cancelled is capitalized).
+// Backend status enum is fully capitalized: "Pending", "Confirmed",
+// "Completed", "Cancelled".
 const statusStyles = {
   Pending: "bg-yellow-100 text-yellow-700",
   Confirmed: "bg-green-100 text-green-700",
@@ -45,11 +45,7 @@ const statusStyles = {
   Cancelled: "bg-red-100 text-red-700",
 };
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
-  if (status === "not_available") return "Not Available";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
+const formatStatus = (status) => status || "Pending";
 
 // TODO: Appointment model doesn't have a visit-type field yet
 // (consultation / report checkup / follow-up). Hardcoded placeholder
@@ -138,7 +134,7 @@ const DoctorDashboard = () => {
   );
 
   const completedTodayCount = todaysAppointments.filter(
-    (a) => a.status === "completed"
+    (a) => a.status === "Completed"
   ).length;
 
   const appointmentsDelta = todaysAppointments.length - yesterdaysAppointments.length;
@@ -374,7 +370,18 @@ const DoctorDashboard = () => {
                         className="border-b border-[#EEF5EF]"
                       >
                         <td className="py-4">
-                          {appt.patientId?.name || "Unknown"}
+                          {appt.patientId?._id || appt.patientId ? (
+                            <button
+                              onClick={() =>
+                                navigate(`/doctor/patients/${appt.patientId?._id || appt.patientId}`)
+                              }
+                              className="text-[#0F2A18] hover:text-[#0B3D1E] hover:underline text-left"
+                            >
+                              {appt.patientId?.name || "Unknown"}
+                            </button>
+                          ) : (
+                            "Unknown"
+                          )}
                         </td>
                         <td>{formatDate(appt.date)}</td>
                         <td>{appt.timeSlot}</td>
@@ -503,7 +510,18 @@ const DoctorDashboard = () => {
                     className="bg-[#EEF5EF] rounded-xl border border-[#D8E5DA] p-5"
                   >
                     <h3 className="text-lg font-bold text-[#0F2A18]">
-                      {appt.patientId?.name || "Unknown"}
+                      {appt.patientId?._id || appt.patientId ? (
+                        <button
+                          onClick={() =>
+                            navigate(`/doctor/patients/${appt.patientId?._id || appt.patientId}`)
+                          }
+                          className="hover:text-[#0B3D1E] hover:underline text-left"
+                        >
+                          {appt.patientId?.name || "Unknown"}
+                        </button>
+                      ) : (
+                        "Unknown"
+                      )}
                     </h3>
 
                     {/* TODO: swap for real visit-type field once it exists

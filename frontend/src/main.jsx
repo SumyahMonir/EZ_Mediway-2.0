@@ -30,6 +30,7 @@ import PatientWaitingRoom from "./pages/PatientWaitingRoom";
 import ManageAvailability from "./pages/ManageAvailability";
 import AppointmentHistory from "./pages/AppointmentHistory";
 import DoctorPatientProfile from "./pages/DoctorPatientProfile";
+import PatientChat from "./pages/PatientChat";
 
 
 const router = createBrowserRouter(
@@ -57,6 +58,16 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+    
+
+<Route
+  path="patient/chat/:doctorId"
+  element={
+    <ProtectedRoute allowedRole="patient">
+      <PatientChat />
+    </ProtectedRoute>
+  }
+/>
 
       {/* Protected routes — require a logged-in user */}
       <Route

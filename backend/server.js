@@ -20,13 +20,14 @@ const appointmentRoutes = require('./routes/appointmentRoute')
 const waitingRoomRoutes = require('./routes/waitingroomRoute')
 const prescriptionRoutes = require('./routes/prescriptionRoute')
 const availabilityRoutes = require('./routes/availabilityRoute')
-
+const messageRoutes = require('./routes/messageRoute')
 const paymentRoutes = require("./routes/paymentRoutes");
 
 const logger = require('./middleware/logger')
 const errorHandler = require('./middleware/error')
 
 const { initWaitingRoomSocket } = require('./sockets/waitingRoomSocket')
+const { initChatSocket } = require('./sockets/chatSocket')
 
 // CORS must come after app is created, before routes
 app.use(cors({
@@ -53,6 +54,7 @@ app.use('/api/waiting-room', waitingRoomRoutes)
 app.use('/api/prescriptions', prescriptionRoutes)
 app.use('/api/availability', availabilityRoutes)
 app.use("/api/payment", paymentRoutes);
+app.use('/api/messages', messageRoutes)
 
 // 404 handler — after routes, catches anything unmatched
 app.use((req, res) => {
@@ -73,6 +75,7 @@ const io = new Server(httpServer, {
 })
 
 initWaitingRoomSocket(io)
+initChatSocket(io)
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   httpServer.listen(PORT, "0.0.0.0", () => {

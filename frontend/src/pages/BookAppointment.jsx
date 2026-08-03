@@ -215,6 +215,10 @@ const BookAppointment = () => {
         const res = await API.get("/appointments/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const appt =  (res.data || [])
+          .filter(
+            (appt) =>
+              extractDoctorId(appt) === doctorId);
 
         const existing = (res.data || [])
           .filter(
@@ -229,14 +233,19 @@ const BookAppointment = () => {
         if (existing) {
           const doctorInfo = extractDoctorInfo(existing);
           setBookedAppointment({
-            id: existing._id || existing.id,
-            doctorName: doctorInfo.name,
-            specialization: doctorInfo.specialization,
-            doctorSlug: doctorInfo.slug,
-            date: existing.date,
-            timeSlot: existing.timeSlot,
-            status: existing.status || "Pending",
-          });
+          id: appt._id,
+          doctorName: appt.doctorId.name,
+          specialization: appt.doctorId.specialization,
+          doctorSlug: appt.doctorId.slug,
+          date: appt.date,
+          timeSlot: appt.timeSlot,
+          status: appt.status,
+
+          consultationFee: appt.consultationFee,
+          paymentStatus: appt.paymentStatus,
+          paymentMethod: appt.paymentMethod,
+          transactionId: appt.transactionId,
+        });
         }
       } catch (err) {
         // Non-fatal — just means we can't confirm an existing booking,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api";
+import ChatBox from "../components/ChatBox";
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -18,7 +19,7 @@ const statusStyles = {
 
 const formatStatus = (status) => {
   if (!status) return "Pending";
-  if (status === "not_available") return "Not Available";
+  if (status === "Cancelled") return "Cancelled";
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
@@ -33,6 +34,7 @@ const DoctorPatientProfile = () => {
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
   const [patient, setPatient] = useState(null);
+  const [doctorProfile, setDoctorProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,11 +43,13 @@ const DoctorPatientProfile = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [patientRes, apptRes] = await Promise.all([
+        const [patientRes, apptRes, doctorRes] = await Promise.all([
           API.get(`/users/${patientId}`, authHeaders),
           API.get("/appointments/doctor/me", authHeaders),
+          API.get("/doctors/me", authHeaders),
         ]);
         setPatient(patientRes.data);
+        setDoctorProfile(doctorRes.data);
 
         const withThisDoctor = (apptRes.data || [])
           .filter((a) => (a.patientId?._id || a.patientId) === patientId)
@@ -123,6 +127,13 @@ const DoctorPatientProfile = () => {
             </table>
           )}
         </div>
+
+        {doctorProfile?._id && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-[#0F2A18] mb-4">Chat With {patient.name}</h2>
+            <ChatBox doctorId={doctorProfile._id} patientId={patientId} myRole="doctor" />
+          </div>
+        )}
       </div>
     </section>
   );

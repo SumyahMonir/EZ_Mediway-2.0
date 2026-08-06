@@ -215,6 +215,7 @@ const BookAppointment = () => {
         const res = await API.get("/appointments/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const appt = (res.data || []).find((a) => extractDoctorId(a) === doctorId);
 
         const existing = (res.data || [])
           .filter(
@@ -226,17 +227,24 @@ const BookAppointment = () => {
             (a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
           )[0];
 
+
         if (existing) {
           const doctorInfo = extractDoctorInfo(existing);
+          console.log("Existing active appointment found:", existing, doctorInfo);
           setBookedAppointment({
-            id: existing._id || existing.id,
-            doctorName: doctorInfo.name,
-            specialization: doctorInfo.specialization,
-            doctorSlug: doctorInfo.slug,
-            date: existing.date,
-            timeSlot: existing.timeSlot,
-            status: existing.status || "Pending",
-          });
+          id: appt._id,
+          doctorName: appt.doctorId.name,
+          specialization: appt.doctorId.specialization,
+          doctorSlug: appt.doctorId.slug,
+          date: appt.date,
+          timeSlot: appt.timeSlot,
+          status: appt.status,
+
+          consultationFee: appt.consultationFee,
+          paymentStatus: appt.paymentStatus,
+          paymentMethod: appt.paymentMethod,
+          transactionId: appt.transactionId,
+        });
         }
       } catch (err) {
         // Non-fatal — just means we can't confirm an existing booking,
@@ -249,7 +257,7 @@ const BookAppointment = () => {
 
     checkExisting();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, doctorId, doctors.length]);
+  }, [token, doctorId, doctors.length,appointmentId]);
 
   // Loads the booking status card straight from an appointmentId in the URL
   // (e.g. after returning from the bKash redirect).

@@ -9,6 +9,9 @@ const Field = ({ label, children }) => (
   </div>
 );
 
+
+
+
 const ReadOnlyInput = ({ value }) => (
   <input
     type="text"
@@ -37,12 +40,16 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const [profileImageFile, setProfileImageFile] = useState(null);
 
   const dashboardRoute = role === "doctor" ? "/doctor/dashboard" : role === "admin"
     ? "/admin/dashboard"
     :  "/patient/dashboard";
 
   useEffect(() => {
+
     const fetchProfile = async () => {
       try {
         const endpoint = role === "doctor" ? "/doctors/me" : "/users/me";
@@ -69,7 +76,6 @@ const Profile = () => {
 
     fetchProfile();
   }, [role, token]);
-
   const displayName = profile?.name || emailFallback;
 
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -77,6 +83,69 @@ const Profile = () => {
   )}&background=0B3D1E&color=ffffff&size=180`;
 
   const avatarUrl = profile?.profileImage || fallbackAvatar;
+  
+
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Validation
+  if (!file.type.startsWith("image/")) {
+    return setError("Please select a valid image file.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return setError("Image must be smaller than 5MB.");
+  }
+
+  setError("");
+  setProfileImageFile(file);
+  avatarUrl = URL.createObjectURL(file); // Update avatar preview immediately
+
+  // Show preview immediately
+  const preview = URL.createObjectURL(file);
+  setProfileImagePreview(preview);
+
+  try {
+    setUploadingImage(true);
+
+    const data = new FormData();
+    data.append("image", file);
+
+    const endpoint =
+      role === "doctor"
+        ? `/doctors/${profile._id}/profile-image`
+        : `/users/${profile._id}/profile-image`;
+
+    const res = await API.patch(endpoint, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    // Update profile with uploaded image
+    setProfile((prev) => ({
+      ...prev,
+      profileImage: res.data.profileImage,
+    }));
+
+
+    setProfileImagePreview(res.data.profileImage);
+  } catch (err) {
+    console.error(err);
+    setError(err.response?.data?.error || "Failed to upload image.");
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+  const removeImage = () => {
+    setProfileImageFile(null);
+    setProfileImagePreview("");
+  };
+
+  
 
   const handleFieldChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -114,6 +183,7 @@ const Profile = () => {
       setError("");
 
       let payload;
+      
 
       if (role === "doctor") {
         payload = {
@@ -130,7 +200,7 @@ const Profile = () => {
           consultationFee: Number(formData.consultationFee),
           description: formData.description,
         };
-      } else {
+      } else if (role === "patient") {
         // ASSUMPTION: patient (Users) schema uses these field names.
         // Not yet confirmed against your actual usermodel.js.
         payload = {
@@ -138,6 +208,15 @@ const Profile = () => {
           phone: formData.phone,
           weight: Number(formData.weight),
           bloodGroup: formData.bloodGroup,
+          email: formData.email, // email is not editable, but included for completeness
+          nid: formData.nid, 
+          gender: formData.gender, 
+          // assuming 'nid' is a field in the patient schema
+        };
+      }
+      else {
+        payload = {
+          name: "Admin"
         };
       }
 
@@ -164,15 +243,62 @@ const Profile = () => {
         {/* Heading */}
         <div className="bg-white rounded-2xl shadow-md border border-[#D8E5DA] p-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <img
-              src={avatarUrl}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = fallbackAvatar;
-              }}
-              alt="Profile"
-              className="w-40 h-40 rounded-full border-4 border-[#D8E5DA] object-cover"
-            />
+            <div className="relative">
+  <img
+    src={avatarUrl}
+    onError={(e) => {
+      e.currentTarget.onerror = null;
+      e.currentTarget.src = fallbackAvatar;
+    }}
+    alt="Profile"
+    className="w-40 h-40 rounded-full border-4 border-[#D8E5DA] object-cover"
+  />
+
+  {isEditing && (
+    <>
+      <label
+        htmlFor="profile-image"
+        className="absolute bottom-1 right-1 bg-[#0B3D1E] text-white rounded-full p-2 cursor-pointer hover:bg-[#082B15]"
+      >
+        📷
+      </label>
+
+      <input
+        id="profile-image"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
+      {profileImagePreview && (
+              <div className="flex justify-center">
+                <img
+                  src={profileImagePreview}
+                  alt="Profile preview"
+                  className="w-28 h-28 rounded-full object-cover border border-[#D8E5DA]"
+                />
+              </div>
+            )}
+
+
+            {profileImageFile && (
+              <button
+                type="button"
+                onClick={removeImage}
+                className="text-sm text-red-500 hover:underline"
+              >
+                Remove photo
+              </button>
+            )}
+    </>
+  )}
+
+  {uploadingImage && (
+    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white">
+      Uploading...
+    </div>
+  )}
+</div>
 
             <div>
               <h2 className="text-2xl font-bold text-[#0F2A18]">

@@ -5,8 +5,10 @@ const {getUsers,
     getMyPatientProfile,
     createUser,
     deleteUser,
-    updateUser
+    updateUser,
+    uploadProfileImage
 }=require("../controllers/UserController")
+const upload = require("../middleware/upload");
 
 const requireAuth = require("../middleware/requireAuth");
 
@@ -22,5 +24,6 @@ router.post('/',createUser )
 router.delete('/:id', deleteUser)
 
 router.patch('/:id',updateUser)
+router.post("/upload-profile-image", requireAuth, upload.single("image"), uploadProfileImage)
 
 module.exports = router

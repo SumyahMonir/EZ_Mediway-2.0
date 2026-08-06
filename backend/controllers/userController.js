@@ -106,6 +106,47 @@ const getMyPatientProfile = async (req,res)=>{
     }
 
 }
+const uploadProfileImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const file = req.file;
+        const fileExt = file.originalname.split(".").pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `profiles/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from("doctor-profiles")
+            .upload(filePath, file.buffer, {
+                contentType: file.mimetype,
+                upsert: false,
+            });
+
+        if (uploadError) {
+            return res.status(500).json({ message: uploadError.message });
+        }
+
+        const { data } = supabase.storage
+            .from("doctor-profiles")
+            .getPublicUrl(filePath);
+
+        const doctor = await Users.findOneAndUpdate(
+            { UserAuthId: req.user._id },
+            { profileImage: data.publicUrl },
+            { new: true }
+        );
+
+        if (!doctor) {
+            return res.status(404).json({ message: "User profile not found for this user" });
+        }
+
+        res.status(200).json({ message: "Image uploaded", doctor });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
 
 module.exports = {
@@ -114,5 +155,6 @@ module.exports = {
     getMyPatientProfile,
     createUser,
     deleteUser,
-    updateUser
+    updateUser,
+    uploadProfileImage
 }

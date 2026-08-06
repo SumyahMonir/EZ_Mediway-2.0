@@ -33,6 +33,7 @@ const statusColor = (status) => {
 const formatStatus = (status) => {
   if (!status) return "Pending";
   if (status === "Cancelled") return "Cancelled";
+  if (status === "Confirmed") return "Confirmed";
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
@@ -73,6 +74,7 @@ const PatientDashboard = () => {
 
         setProfile(profileRes.data);
         setAppointments(appointmentsRes.data || []);
+        console.log("Fetched Profile:", profileRes.data);
 
         // Only needed if doctorId comes back unpopulated (just an id string),
         // and to get each doctor's slug for linking to their page.
@@ -399,6 +401,13 @@ const PatientDashboard = () => {
                     <p className="text-[#3A4D3E]">
                       {doc.specialization || "General Physician"}
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/patient/chat/${doc.id}`)}
+                      className="mt-2 text-sm text-[#0B3D1E] font-medium hover:underline"
+                    >
+                      Message
+                    </button>
                   </div>
                 ))}
               </div>

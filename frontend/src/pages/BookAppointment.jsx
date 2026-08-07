@@ -215,7 +215,10 @@ const BookAppointment = () => {
         const res = await API.get("/appointments/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const appt = (res.data || []).find((a) => extractDoctorId(a) === doctorId);
+        const appt =  (res.data || [])
+          .filter(
+            (appt) =>
+              extractDoctorId(appt) === doctorId);
 
         const existing = (res.data || [])
           .filter(

@@ -13,10 +13,8 @@ const formatDate = (dateStr) => {
   });
 };
 
-// The backend's status enum is: "pending", "confirmed", "not_available",
-// "completed", "Cancelled" (yes, only Cancelled is capitalized — that's
-// how it's defined in the Appointment schema). Compare against these
-// exact values; use formatStatus() only for what's shown on screen.
+// The backend's status enum is fully capitalized: "Pending", "Confirmed",
+// "Completed", "Cancelled". Compare against these exact values.
 const statusColor = (status) => {
   switch (status) {
     case "Completed":
@@ -26,16 +24,11 @@ const statusColor = (status) => {
     case "Confirmed":
       return "text-[#0B3D1E]";
     default:
-      return "text-yellow-600"; // pending / anything else
+      return "text-yellow-600"; // Pending / anything else
   }
 };
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
-  if (status === "Cancelled") return "Cancelled";
-  if (status === "Confirmed") return "Confirmed";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
+const formatStatus = (status) => status || "Pending";
 
 // Is this appointment's date today (local calendar day)?
 const isToday = (dateStr) => {
@@ -54,6 +47,7 @@ const PatientDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]); // fallback lookup if doctorId isn't populated
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState(null);
@@ -75,6 +69,16 @@ const PatientDashboard = () => {
         setProfile(profileRes.data);
         setAppointments(appointmentsRes.data || []);
         console.log("Fetched Profile:", profileRes.data);
+
+        try {
+          const prescriptionsRes = await API.get(
+            `/prescriptions/patient/${profileRes.data._id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setPrescriptions(prescriptionsRes.data || []);
+        } catch (err) {
+          console.log("Could not load prescriptions:", err);
+        }
 
         // Only needed if doctorId comes back unpopulated (just an id string),
         // and to get each doctor's slug for linking to their page.
@@ -183,7 +187,7 @@ const PatientDashboard = () => {
 
   const totalAppointments = appointments.length;
   const completedVisits = appointments.filter(
-    (a) => a.status === "completed"
+    (a) => a.status === "Completed"
   ).length;
 
   // Most recent distinct doctors the patient has booked with.
@@ -247,7 +251,7 @@ const PatientDashboard = () => {
                       </button>
                     )}
 
-                  {upcomingAppointment.status !== "completed" && (
+                  {upcomingAppointment.status !== "Completed" && (
                     <button
                       type="button"
                       onClick={() =>
@@ -352,7 +356,7 @@ const PatientDashboard = () => {
                                 Join Waiting Room
                               </button>
                             )}
-                            {appt.status !== "completed" &&
+                            {appt.status !== "Completed" &&
                               appt.status !== "Cancelled" && (
                                 <button
                                   type="button"
@@ -372,6 +376,49 @@ const PatientDashboard = () => {
                   })}
                 </tbody>
               </table>
+            )}
+          </div>
+
+          {/* Prescriptions — same layout as the doctor-facing version */}
+          <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mt-8">
+            <h3 className="text-2xl font-bold text-[#0F2A18] mb-4">
+              Prescriptions
+            </h3>
+
+            {prescriptions.length === 0 ? (
+              <p className="text-[#6B7B6E]">No prescriptions yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {prescriptions.map((p) => (
+                  <div
+                    key={p._id}
+                    className="border border-[#D8E5DA] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                  >
+                    <div>
+                      <p className="font-semibold text-[#0F2A18]">
+                        Dr. {p.doctorId?.name || "Unknown"}
+                      </p>
+                      <p className="text-sm text-[#6B7B6E]">Issued: {formatDate(p.createdAt)}</p>
+                      <p className="text-sm text-[#3A4D3E] mt-1">
+                        <span className="font-medium">Diagnosis:</span> {p.diagnosis || "-"}
+                      </p>
+                    </div>
+
+                    {p.pdfUrl ? (
+                      <a
+                        href={p.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] transition text-sm whitespace-nowrap text-center"
+                      >
+                        View Prescription
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400 whitespace-nowrap">PDF not generated</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

@@ -2,8 +2,12 @@ import React, { useEffect, useState } from "react";
 import DoctorCard from "../components/DoctorCard";
 import API from "../api";
 
+const DAY_ABBR = { Sunday: "Sun", Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu", Friday: "Fri", Saturday: "Sat" };
+const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 const Doctors = () => {
   const [doctors, setDoctors] = useState([]);
+  const [availabilityMap, setAvailabilityMap] = useState({}); // doctorId -> ["Sun", "Wed", ...]
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -11,8 +15,27 @@ const Doctors = () => {
     const fetchDoctors = async () => {
       try {
         const res = await API.get("/doctors");
-        console.log("doctors from API:", res.data); // ← add this
         setDoctors(res.data);
+
+        // Fetch each doctor's weekly schedule in parallel and reduce it
+        // down to just the abbreviated day names that have slots — that's
+        // all the card needs to show.
+        const results = await Promise.all(
+          (res.data || []).map((doc) =>
+            API.get(`/availability/${doc._id}`)
+              .then((availRes) => ({
+                id: doc._id,
+                days: DAY_ORDER
+                  .filter((day) => (availRes.data?.schedule || []).some((e) => e.day === day && e.slots?.length > 0))
+                  .map((day) => DAY_ABBR[day]),
+              }))
+              .catch(() => ({ id: doc._id, days: [] }))
+          )
+        );
+
+        const map = {};
+        results.forEach((r) => { map[r.id] = r.days; });
+        setAvailabilityMap(map);
       } catch (err) {
         console.error(err);
         setError("Failed to load doctors.");
@@ -57,6 +80,7 @@ const Doctors = () => {
               experience={`${doc.experience} Years Experience`}
               hospital={doc.hospital}
               fee={doc.consultationFee}
+              availableDays={availabilityMap[doc._id]}
             />
           ))}
         </div>

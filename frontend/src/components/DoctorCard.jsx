@@ -9,6 +9,7 @@ const DoctorCard = ({
   experience,
   hospital,
   fee,
+  availableDays, // e.g. ["Sun", "Mon", "Wed"] — undefined while loading, [] if none set
 }) => {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-[#D8E5DA] p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
@@ -37,6 +38,18 @@ const DoctorCard = ({
       <p className="text-center font-semibold text-[#0F2A18] mt-3">
         Fee: BDT {fee}
       </p>
+
+      {availableDays !== undefined && (
+        <p className="text-center text-sm mt-2">
+          {availableDays.length > 0 ? (
+            <span className="text-green-700">
+              Available: {availableDays.join(", ")}
+            </span>
+          ) : (
+            <span className="text-gray-400">No availability set</span>
+          )}
+        </p>
+      )}
 
       <div className="mt-6 text-center">
         <Link

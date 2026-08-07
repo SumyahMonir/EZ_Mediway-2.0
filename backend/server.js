@@ -21,7 +21,6 @@ const waitingRoomRoutes = require('./routes/waitingroomRoute')
 const prescriptionRoutes = require('./routes/prescriptionRoute')
 const availabilityRoutes = require('./routes/availabilityRoute')
 const messageRoutes = require('./routes/messageRoute')
-
 const paymentRoutes = require("./routes/paymentRoutes");
 
 const logger = require('./middleware/logger')
@@ -56,7 +55,6 @@ app.use('/api/prescriptions', prescriptionRoutes)
 app.use('/api/availability', availabilityRoutes)
 app.use("/api/payment", paymentRoutes);
 app.use('/api/messages', messageRoutes)
-
 
 // 404 handler — after routes, catches anything unmatched
 app.use((req, res) => {

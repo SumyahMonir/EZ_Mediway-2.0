@@ -17,11 +17,7 @@ const statusStyles = {
   Cancelled: "bg-red-100 text-red-700",
 };
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
-  if (status === "Cancelled") return "Cancelled";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
+const formatStatus = (status) => status || "Pending";
 
 // Read-only, doctor-facing view of a patient — NOT the patient's own
 // dashboard (that route is locked to allowedRole="patient" and would
@@ -36,6 +32,7 @@ const DoctorPatientProfile = () => {
   const [patient, setPatient] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -43,13 +40,15 @@ const DoctorPatientProfile = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [patientRes, apptRes, doctorRes] = await Promise.all([
+        const [patientRes, apptRes, doctorRes, prescriptionsRes] = await Promise.all([
           API.get(`/users/${patientId}`, authHeaders),
           API.get("/appointments/doctor/me", authHeaders),
           API.get("/doctors/me", authHeaders),
+          API.get(`/prescriptions/patient/${patientId}`, authHeaders),
         ]);
         setPatient(patientRes.data);
         setDoctorProfile(doctorRes.data);
+        setPrescriptions(prescriptionsRes.data || []);
 
         const withThisDoctor = (apptRes.data || [])
           .filter((a) => (a.patientId?._id || a.patientId) === patientId)
@@ -125,6 +124,46 @@ const DoctorPatientProfile = () => {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#D8E5DA] shadow-md p-6 mt-8">
+          <h2 className="text-xl font-bold text-[#0F2A18] mb-4">Prescriptions</h2>
+
+          {prescriptions.length === 0 ? (
+            <p className="text-gray-500">No prescriptions issued for this patient yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {prescriptions.map((p) => (
+                <div
+                  key={p._id}
+                  className="border border-[#D8E5DA] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
+                  <div>
+                    <p className="font-semibold text-[#0F2A18]">
+                      Dr. {p.doctorId?.name || "Unknown"}
+                    </p>
+                    <p className="text-sm text-[#6B7B6E]">Issued: {formatDate(p.createdAt)}</p>
+                    <p className="text-sm text-[#3A4D3E] mt-1">
+                      <span className="font-medium">Diagnosis:</span> {p.diagnosis || "-"}
+                    </p>
+                  </div>
+
+                  {p.pdfUrl ? (
+                    <a
+                      href={p.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] transition text-sm whitespace-nowrap text-center"
+                    >
+                      View Prescription
+                    </a>
+                  ) : (
+                    <span className="text-sm text-gray-400 whitespace-nowrap">PDF not generated</span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

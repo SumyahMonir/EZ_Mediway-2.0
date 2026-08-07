@@ -2,20 +2,34 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import API from "../api";
 
+const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// "HH:MM" (24hr, from the availability schedule) -> "h:mm AM/PM"
+const formatTime12hr = (time24) => {
+  if (!time24) return "";
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${period}`;
+};
+
+const slotLabel = (slot) => `${formatTime12hr(slot.startTime)} - ${formatTime12hr(slot.endTime)}`;
+
 const DoctorDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
 
   const [doctor, setDoctor] = useState(null);
+  const [availability, setAvailability] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
   const [error, setError] = useState("");
-  
 
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
         setLoading(true);
-        console.log("Fetching doctor details for slug:", slug);
         const res = await API.get(`/doctors/slug/${slug}`);
         setDoctor(res.data);
       } catch (err) {
@@ -28,6 +42,26 @@ const DoctorDetails = () => {
 
     fetchDoctor();
   }, [slug]);
+
+  // Fetch the weekly schedule once we know the doctor's real id
+  useEffect(() => {
+    if (!doctor?._id) return;
+
+    const fetchAvailability = async () => {
+      try {
+        setLoadingAvailability(true);
+        const res = await API.get(`/availability/${doctor._id}`);
+        setAvailability(res.data);
+      } catch (err) {
+        console.error(err);
+        setAvailability({ schedule: [] });
+      } finally {
+        setLoadingAvailability(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [doctor?._id]);
 
   const fallbackAvatar = doctor
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=0B3D1E&color=ffffff&size=256`
@@ -142,6 +176,45 @@ const DoctorDetails = () => {
 
           </div>
 
+        </div>
+
+        {/* Weekly availability — same layout style as BookAppointment.jsx */}
+        <div className="bg-white rounded-2xl shadow-lg border border-[#D8E5DA] p-8 mt-8">
+          <h3 className="text-2xl font-bold text-[#0F2A18] mb-6">Available Slots</h3>
+
+          {loadingAvailability ? (
+            <p className="text-[#6B7B6E]">Loading availability...</p>
+          ) : (
+            <div className="space-y-3">
+              {DAY_ORDER.map((dayName) => {
+                const day = (availability?.schedule || []).find((d) => d.day === dayName);
+
+                return (
+                  <div key={dayName} className="border rounded-lg p-3 bg-[#F7FAF7]">
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold text-[#0F2A18]">{dayName}</p>
+                      {!day?.slots?.length && (
+                        <span className="text-red-500 text-sm font-medium">Not Available</span>
+                      )}
+                    </div>
+
+                    {day?.slots?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {day.slots.map((slot, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm"
+                          >
+                            {slotLabel(slot)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

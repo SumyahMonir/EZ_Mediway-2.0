@@ -18,14 +18,10 @@ const statusStyles = {
   Cancelled: "bg-red-100 text-red-700",
 };
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
-  if (status === "Cancelled") return "Cancelled";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
+const formatStatus = (status) => status || "Pending";
 
-// The 4 options exposed to the doctor here — mapped to the backend's exact
-// enum casing ("Cancelled" is the only capitalized one).
+// The 4 options exposed to the doctor here — the backend's status enum is
+// now fully capitalized (Pending/Confirmed/Completed/Cancelled).
 const STATUS_OPTIONS = [
   { label: "Pending", value: "Pending" },
   { label: "Confirm", value: "Confirmed" },
@@ -41,14 +37,11 @@ const AppointmentHistory = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [errReasonId, setErrReasonId] = useState(null);
-  const [subError, setSubError] = useState("");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [reasonDrafts, setReasonDrafts] = useState({}); // apptId -> in-progress edit text
   const [savingReasonId, setSavingReasonId] = useState(null);
-  const [savedReason, setSavedReason] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -100,20 +93,19 @@ const AppointmentHistory = () => {
   // Cancelling requires a reason up front — same window.prompt pattern the
   // app already uses for "Not Available" in DoctorAppointments.jsx.
   const handleCancelClick = (apptId) => {
-    const reason = "I am Not Available For the Slot";
+    const reason = window.prompt("Please provide a reason for cancelling this appointment:");
+    if (reason === null) return; // dismissed — don't cancel without a reason
+    if (!reason.trim()) {
+      setError("A cancellation reason is required.");
+      return;
+    }
     handleStatusChange(apptId, "Cancelled", reason.trim());
   };
 
   // Lets the doctor edit the reason after the fact, independent of the
   // status buttons — status stays "Cancelled", only doctorMessage changes.
-  
   const handleSaveReason = async (apptId) => {
     const reason = (reasonDrafts[apptId] ?? "").trim();
-    if (!reason) {
-    setErrReasonId(apptId);
-      setSubError("A cancellation reason is required.");
-      return;
-    }
     try {
       setSavingReasonId(apptId);
       setError("");
@@ -130,9 +122,6 @@ const AppointmentHistory = () => {
       setError(err.response?.data?.error || "Failed to update cancellation reason.");
     } finally {
       setSavingReasonId(null);
-      setSavedReason(true);
-      setErrReasonId(null);
-      setSubError("");
     }
   };
 
@@ -220,25 +209,19 @@ const AppointmentHistory = () => {
                             <p className="font-semibold text-[#0F2A18] mb-2 text-sm">Cancellation Reason</p>
                             <textarea
                               value={reasonDrafts[apptId] ?? appt.doctorMessage ?? ""}
-                              onChange={(e) => {
-  setReasonDrafts((prev) => ({
-    ...prev,
-    [apptId]: e.target.value,
-  }));
-
-  setSavedReason(false);
-}}
+                              onChange={(e) =>
+                                setReasonDrafts((prev) => ({ ...prev, [apptId]: e.target.value }))
+                              }
                               rows={2}
                               placeholder="Reason shown to the patient..."
                               className="w-full border border-[#D8E5DA] rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-[#0B3D1E]/30 focus:border-[#0B3D1E]"
                             />
-                             {errReasonId === apptId && subError && <p className="text-red-500 mb-4">{subError}</p>}
                             <button
                               onClick={() => handleSaveReason(apptId)}
                               disabled={savingReasonId === apptId}
                               className="mt-2 bg-[#0B3D1E] text-white px-4 py-2 rounded-lg hover:bg-[#082B15] transition text-sm disabled:opacity-50"
                             >
-                              {savedReason && savingReasonId !== apptId ? "Saved" : savingReasonId === apptId ? "Saving..." : "Save Reason"}
+                              {savingReasonId === apptId ? "Saving..." : "Save Reason"}
                             </button>
                           </div>
                         )}

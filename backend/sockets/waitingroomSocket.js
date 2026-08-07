@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const WaitingRoom = require("../models/waitingroomModel");
+const WaitingRoom = require("../models/waitingRoomModel");
 const Appointment = require("../models/appointmentmodel");
 const Doctor = require("../models/doctormodel");
 const Users = require("../models/usermodel");
@@ -196,7 +196,7 @@ function initWaitingRoomSocket(io) {
 
     // DOCTOR — finished with the current patient, advance the queue
     socket.on("waiting-room:complete", async () => {
-      await advanceQueue(nsp, socket, "Completed");
+      await advanceQueue(nsp, socket, "completed");
     });
 
     // DOCTOR — current patient isn't responding, send them to the back

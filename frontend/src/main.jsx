@@ -33,7 +33,6 @@ import DoctorPatientProfile from "./pages/DoctorPatientProfile";
 import PatientChat from "./pages/PatientChat";
 
 
-
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App />}>
@@ -59,6 +58,16 @@ const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+    
+
+<Route
+  path="patient/chat/:doctorId"
+  element={
+    <ProtectedRoute allowedRole="patient">
+      <PatientChat />
+    </ProtectedRoute>
+  }
+/>
 
       {/* Protected routes — require a logged-in user */}
       <Route

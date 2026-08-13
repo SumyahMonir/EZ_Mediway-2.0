@@ -36,10 +36,6 @@ const allowedOrigins = [
   "https://ez-mediway-2-0.vercel.app",
 ];
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
 
 app.use(cors({
   origin: allowedOrigins,

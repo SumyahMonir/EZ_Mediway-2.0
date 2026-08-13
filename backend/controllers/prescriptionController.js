@@ -288,8 +288,14 @@ const sendPrescription = async (req, res) => {
 
     res.status(200).json(prescription);
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  console.error("SEND PRESCRIPTION ERROR:", error);
+  console.error(error.stack);
+
+  res.status(500).json({
+    error: error.message,
+  });
+}
+  
 };
 
 module.exports = {

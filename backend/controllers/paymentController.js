@@ -1,7 +1,7 @@
 const { createPayment, executePayment } = require("../utils/bkash");
-const Appointment = require("../models/appointmentmodel");
-const Doctor = require("../models/doctormodel");
-const Users = require("../models/usermodel");
+const Appointment = require("../models/appointmentModel");
+const Doctor = require("../models/doctorModel");
+const Users = require("../models/userModel");
 
 // Patient clicks "Pay with bKash" — this creates the bKash payment session.
 // The fee is looked up from the Doctor's own record here, NEVER trusted

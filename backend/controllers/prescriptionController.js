@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const Prescription = require("../models/prescriptionModel");
-const Doctor = require("../models/doctormodel");
-const Users = require("../models/usermodel");
-const Appointment = require("../models/appointmentmodel");
+const Doctor = require("../models/doctorModel");
+const Users = require("../models/userModel");
+const Appointment = require("../models/appointmentModel");
 const supabase = require("../config/supabase");
 const { generatePrescriptionPdfBuffer } = require("../utils/generatePrescriptionPdf");
 

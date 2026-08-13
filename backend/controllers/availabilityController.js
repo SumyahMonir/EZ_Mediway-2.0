@@ -1,5 +1,5 @@
 const DoctorAvailability = require("../models/doctorAvailabilityModel");
-const Doctor = require("../models/doctormodel");
+const Doctor = require("../models/doctorModel");
 
 const DAYS_OF_WEEK = DoctorAvailability.DAYS_OF_WEEK;
 

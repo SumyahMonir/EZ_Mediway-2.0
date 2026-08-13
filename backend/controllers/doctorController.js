@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose")
-const Doctor = require("../models/doctormodel")
+const Doctor = require("../models/doctorModel")
 const supabase = require("../config/supabase")
 const crypto = require("crypto")
 

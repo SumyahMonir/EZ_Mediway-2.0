@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const Message = require("../models/messageModel");
-const Appointment = require("../models/appointmentmodel");
-const Doctor = require("../models/doctormodel");
-const Users = require("../models/usermodel");
+const Appointment = require("../models/appointmentModel");
+const Doctor = require("../models/doctorModel");
+const Users = require("../models/userModel");
 
 // A chat only exists between a doctor and patient who've actually had at
 // least one appointment together — and only the two of them can access it.

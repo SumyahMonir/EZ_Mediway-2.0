@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose")
-const Users = require("../models/usermodel")
+const Users = require("../models/userModel")
 
 const getUsers = async (req, res) => {
     try {

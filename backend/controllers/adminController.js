@@ -1,5 +1,5 @@
-const Doctor = require("../models/doctormodel")
-const Users = require("../models/usermodel")
+const Doctor = require("../models/doctorModel")
+const Users = require("../models/userModel")
 
 const getAdminStats = async (req, res) => {
     if (req.user.Role !== "admin") {

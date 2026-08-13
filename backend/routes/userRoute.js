@@ -7,7 +7,7 @@ const {getUsers,
     deleteUser,
     updateUser,
     uploadProfileImage
-}=require("../controllers/UserController")
+}=require("../controllers/userController")
 const upload = require("../middleware/upload");
 
 const requireAuth = require("../middleware/requireAuth");

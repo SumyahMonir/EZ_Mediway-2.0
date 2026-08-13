@@ -26,7 +26,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const logger = require('./middleware/logger')
 const errorHandler = require('./middleware/error')
 
-const { initWaitingRoomSocket } = require('./sockets/waitingRoomSocket')
+const { initWaitingRoomSocket } = require('./sockets/waitingroomSocket')
 const { initChatSocket } = require('./sockets/chatSocket')
 
 const allowedOrigins = [

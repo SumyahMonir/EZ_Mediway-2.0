@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 
 // Same host your axios instance (api.js) points at, just without /api
 // and on the dedicated "/waiting-room" namespace.
-const SOCKET_BASE_URL = "http://localhost:4000";
+const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL;
 
 export function createWaitingRoomSocket() {
   const token = localStorage.getItem("token");

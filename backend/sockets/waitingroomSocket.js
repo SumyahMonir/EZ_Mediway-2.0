@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
-const WaitingRoom = require("../models/waitingRoomModel");
-const Appointment = require("../models/appointmentmodel");
-const Doctor = require("../models/doctormodel");
-const Users = require("../models/usermodel");
+const WaitingRoom = require("../models/waitingroomModel");
+const Appointment = require("../models/appointmentModel");
+const Doctor = require("../models/doctorModel");
+const Users = require("../models/userModel");
 
 // How long we wait after a socket disconnects before actually removing the
 // patient from the queue — tolerates brief internet drops / page refreshes.

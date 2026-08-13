@@ -1,5 +1,5 @@
 const WaitingRoom = require("../models/waitingroomModel");
-const Doctor = require("../models/doctormodel");
+const Doctor = require("../models/doctorModel");
 
 const normalizeDate = (date) => {
   // Must match UTC midnight, since a date-only string like "2026-07-25" is

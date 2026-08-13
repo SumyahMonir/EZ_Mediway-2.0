@@ -1,5 +1,5 @@
 const express = require('express')
-const Users=require("../models/usermodel")
+const Users=require("../models/userModel")
 const {getUsers,
     getUser,
     getMyPatientProfile,

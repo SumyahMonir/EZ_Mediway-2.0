@@ -33,7 +33,13 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
   "http://192.168.1.105:5173",
-]
+  "https://ez-mediway-2-0.vercel.app",
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 
 app.use(cors({
   origin: allowedOrigins,

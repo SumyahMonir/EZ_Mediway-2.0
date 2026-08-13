@@ -127,4 +127,4 @@ async function generatePrescriptionPdfBuffer(data) {
   return renderToBuffer(doc);
 }
 
-module.exports = {   };
+module.exports = { generatePrescriptionPdfBuffer };

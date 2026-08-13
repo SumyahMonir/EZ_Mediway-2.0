@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 const Message = require("../models/messageModel");
-const Appointment = require("../models/appointmentmodel");
-const Doctor = require("../models/doctormodel");
-const Users = require("../models/usermodel");
+const Appointment = require("../models/appointmentModel");
+const Doctor = require("../models/doctorModel");
+const Users = require("../models/userModel");
 
 const roomKey = (doctorId, patientId) => `${doctorId}_${patientId}`;
 

@@ -29,12 +29,14 @@ const errorHandler = require('./middleware/error')
 const { initWaitingRoomSocket } = require('./sockets/waitingRoomSocket')
 const { initChatSocket } = require('./sockets/chatSocket')
 
-// CORS must come after app is created, before routes
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://192.168.1.105:5173",
+]
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://192.168.1.105:5173", // Replace with your PC's IP
-  ],
+  origin: allowedOrigins,
   credentials: true,
 }))
 
@@ -67,9 +69,10 @@ app.use(errorHandler)
 // Wrap Express in a plain http server so Socket.IO can share the same port
 const httpServer = http.createServer(app)
 
+
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:5173", "http://192.168.1.105:5173"],
+    origin: allowedOrigins,
     credentials: true,
   },
 })

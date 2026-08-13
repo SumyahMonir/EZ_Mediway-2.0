@@ -4,7 +4,7 @@ import API from "../api";
 
 // Same host api.js points at, without /api, on the dedicated chat namespace —
 // same pattern as lib/waitingRoomSocket.js.
-const SOCKET_BASE_URL = "http://localhost:4000";
+const SOCKET_BASE_URL = import.meta.env.VITE_SOCKET_URL;
 
 // Embeddable chat between a specific doctor+patient pair. Used on both the
 // doctor's patient-profile page and the patient's chat page.
